@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Game Online TV Controller</title>
+    
+    <!-- Nhúng bộ thư viện giả lập Java J2ME Engine -->
+    <script src="https://cdn.jsdelivr.net/gh/niklasvh/html2canvas@master/dist/html2canvas.min.js"></script>
+    <script src="https://rawgit.com/mozilla/j2me.js/master/dist/j2me.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* KHU VỰC HIỂN THỊ GAME JAVA (BÊN TRÁI) */
+        #game-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #000000;
+            border-right: 2px solid #30363d;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            max-width: 95%;
+            max-height: 95vh;
+            image-rendering: pixelated;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        /* BÀN PHÍM ẢO DÙNG CHUỘT MAGIC REMOTE (BÊN PHẢI) */
+        #controls-section {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #161b22;
+        }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .btn {
+            background-color: #21262d;
+            color: #c9d1d9;
+            border: 2px solid #363b42;
+            padding: 16px 0;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background-color: #30363d;
+            border-color: #58a6ff;
+            color: #ffffff;
+        }
+
+        .btn:active {
+            background-color: #1f6feb;
+            color: #ffffff;
+        }
+
+        .btn-soft { background-color: #238636; border-color: #2ea043; color: #ffffff; }
+        .btn-dir { background-color: #1f6feb; border-color: #388bfd; color: #ffffff; }
+        
+        /* Nút kích hoạt nhập văn bản kiểu J2ME Loader */
+        .btn-input {
+            grid-column: span 3;
+            background-color: #d97706;
+            border-color: #f59e0b;
+            color: #ffffff;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        /* MÀN HÌNH NHẬP LIỆU TRẮNG XOÁ (J2ME LOADER STYLE DIALOG) */
+        #input-dialog-overlay {
+            display: none; /* Mặc định ẩn */
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #ffffff; /* Màn hình trắng xoá */
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dialog-box {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .dialog-title {
+            color: #111827;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Thanh ngang nhập liệu kích hoạt bàn phím ảo TV */
+        .dialog-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 24px;
+            border: 3px solid #2563eb;
+            border-radius: 8px;
+            outline: none;
+            color: #000000;
+            background-color: #f8fafc;
+        }
+
+        .dialog-actions {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-dialog {
+            flex: 1;
+            padding: 16px 0;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-dialog-ok { background-color: #16a34a; color: #ffffff; }
+        .btn-dialog-ok:hover { background-color: #15803d; }
+
+        .btn-dialog-back { background-color: #dc2626; color: #ffffff; }
+        .btn-dialog-back:hover { background-color: #b91c1c; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. KHU VỰC CHẠY GAME -->
+    <div id="game-section">
+        <div id="canvas-container"></div>
+    </div>
+
+    <!-- 2. KHU VỰC BÀN PHÍM BẤM BẰNG CHUỘT MAGIC REMOTE -->
+    <div id="controls-section">
+        <div class="keypad-grid">
+            <!-- Nút mở khung nhập liệu nhanh -->
+            <button class="btn btn-input" onclick="openInputDialog()">⌨ Nhập TK / MK (Gõ chữ)</button>
+
+            <!-- Softkeys & Điều hướng -->
+            <button class="btn btn-soft" onmousedown="triggerKey(112)" onmouseup="releaseKey(112)">L-Soft</button>
+            <button class="btn btn-dir" onmousedown="triggerKey(38)" onmouseup="releaseKey(38)">▲</button>
+            <button class="btn btn-soft" onmousedown="triggerKey(113)" onmouseup="releaseKey(113)">R-Soft</button>
+
+            <button class="btn btn-dir" onmousedown="triggerKey(37)" onmouseup="releaseKey(37)">◄</button>
+            <button class="btn btn-dir" onmousedown="triggerKey(13)" onmouseup="releaseKey(13)">OK</button>
+            <button class="btn btn-dir" onmousedown="triggerKey(39)" onmouseup="releaseKey(39)">►</button>
+
+            <!-- Phím số 1-9, *, 0, # -->
+            <button class="btn" onmousedown="triggerKey(49)" onmouseup="releaseKey(49)">1</button>
+            <button class="btn btn-dir" onmousedown="triggerKey(40)" onmouseup="releaseKey(40)">▼</button>
+            <button class="btn" onmousedown="triggerKey(51)" onmouseup="releaseKey(51)">3</button>
+
+            <button class="btn" onmousedown="triggerKey(52)" onmouseup="releaseKey(52)">4</button>
+            <button class="btn" onmousedown="triggerKey(53)" onmouseup="releaseKey(53)">5</button>
+            <button class="btn" onmousedown="triggerKey(54)" onmouseup="releaseKey(54)">6</button>
+
+            <button class="btn" onmousedown="triggerKey(55)" onmouseup="releaseKey(55)">7</button>
+            <button class="btn" onmousedown="triggerKey(56)" onmouseup="releaseKey(56)">8</button>
+            <button class="btn" onmousedown="triggerKey(57)" onmouseup="releaseKey(57)">9</button>
+
+            <button class="btn" onmousedown="triggerKey(42)" onmouseup="releaseKey(42)">*</button>
+            <button class="btn" onmousedown="triggerKey(48)" onmouseup="releaseKey(48)">0</button>
+            <button class="btn" onmousedown="triggerKey(35)" onmouseup="releaseKey(35)">#</button>
+        </div>
+    </div>
+
+    <!-- 3. MÀN HÌNH NHẬP LIỆU MÀU TRẮNG XOÁ (J2ME LOADER STYLE DIALOG) -->
+    <div id="input-dialog-overlay">
+        <div class="dialog-box">
+            <div class="dialog-title">NHẬP VĂN BẢN (TK / MK)</div>
+            
+            <!-- Thanh ngang nhập tài khoản / mật khẩu -->
+            <input type="text" id="dialog-text-input" class="dialog-input" placeholder="Bấm vào đây để bật phím ảo TV..." autofocus>
+            
+            <div class="dialog-actions">
+                <button class="btn-dialog btn-dialog-ok" onclick="submitInputDialog()">OK (Đồng ý)</button>
+                <button class="btn-dialog btn-dialog-back" onclick="closeInputDialog()">Quay lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. LOGIC XỬ LÝ NỀN -->
+    <script>
+        // Tự động khởi chạy game Java
+        window.addEventListener('load', function() {
+            if (typeof J2ME !== 'undefined') {
+                J2ME.init({
+                    container: document.getElementById('canvas-container'),
+                    jarUrl: './game.jar'
+                });
+            }
+        });
+
+        // Hàm phát sự kiện phím
+        function triggerKey(keyCode) {
+            var evt = new KeyboardEvent('keydown', { keyCode: keyCode, which: keyCode, bubbles: true });
+            document.dispatchEvent(evt);
+        }
+
+        function releaseKey(keyCode) {
+            var evt = new KeyboardEvent('keyup', { keyCode: keyCode, which: keyCode, bubbles: true });
+            document.dispatchEvent(evt);
+        }
+
+        // Bắt phím Remote TV LG
+        window.addEventListener('keydown', function(e) {
+            // Nếu đang mở khung nhập liệu thì không nhận phím di chuyển
+            if (document.getElementById('input-dialog-overlay').style.display === 'flex') {
+                if (e.keyCode === 13) submitInputDialog(); // Bấm OK trên remote để gửi
+                return;
+            }
+
+            switch(e.keyCode) {
+                case 38: triggerKey(38); break; // Lên
+                case 40: triggerKey(40); break; // Xuống
+                case 37: triggerKey(37); break; // Trái
+                case 39: triggerKey(39); break; // Phải
+                case 13: triggerKey(13); break; // OK
+            }
+        });
+
+        window.addEventListener('keyup', function(e) {
+            if (document.getElementById('input-dialog-overlay').style.display === 'flex') return;
+            switch(e.keyCode) {
+                case 38: releaseKey(38); break;
+                case 40: releaseKey(40); break;
+                case 37: releaseKey(37); break;
+                case 39: releaseKey(39); break;
+                case 13: releaseKey(13); break;
+            }
+        });
+
+        // --- CÁC HÀM XỬ LÝ MÀN HÌNH NHẬP LIỆU (DIALOG) ---
+        
+        function openInputDialog() {
+            var overlay = document.getElementById('input-dialog-overlay');
+            var input = document.getElementById('dialog-text-input');
+            input.value = ''; // Xoá trắng ô nhập
+            overlay.style.display = 'flex'; // Hiện màn hình trắng
+            setTimeout(function() { input.focus(); }, 100); // Tự động bật phím ảo TV
+        }
+
+        function closeInputDialog() {
+            document.getElementById('input-dialog-overlay').style.display = 'none'; // Ẩn màn hình trắng
+        }
+
+        function submitInputDialog() {
+            var text = document.getElementById('dialog-text-input').value;
+            if (text.length > 0) {
+                // Tự động mô phỏng gõ từng ký tự vừa nhập vào game Java
+                for (var i = 0; i < text.length; i++) {
+                    var charCode = text.charCodeAt(i);
+                    var evt = new KeyboardEvent('keypress', { charCode: charCode, keyCode: charCode, bubbles: true });
+                    document.dispatchEvent(evt);
+                }
+            }
+            closeInputDialog(); // Đóng màn hình trắng sau khi nhập xong
+        }
+    </script>
+</body>
+</html>
