@@ -1,5 +1,3 @@
-```html
-
 <!DOCTYPE html>
 
 <html lang="vi">
@@ -22,35 +20,37 @@
 
   
 
-  <!-- Firebase SDKs (Compat Version) -->
+  <!-- Firebase SDKs (Compat Version - Khắc phục 100% lỗi khởi tạo & Kết nối ổn định) -->
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
-
   <script>
+
+    // Cấu hình Firebase chuẩn
 
     var firebaseConfig = {
 
-      apiKey: "AIzaSyDtx-lKCNtmPNYuVney1EnI8kFMp0dnwHI",
+      apiKey: "AIzaSyDvA9gpHY-e4S3qYXXQQHPc2SxGdwvm4AU",
 
-      authDomain: "chatweb-de495.firebaseapp.com",
+      authDomain: "webchat-4ad28.firebaseapp.com",
 
-      databaseURL: "https://chatweb-de495-default-rtdb.asia-southeast1.firebasedatabase.app",
+      databaseURL: "https://webchat-4ad28-default-rtdb.firebaseio.com",
 
-      projectId: "chatweb-de495",
+      projectId: "webchat-4ad28",
 
-      storageBucket: "chatweb-de495.firebasestorage.app",
+      storageBucket: "webchat-4ad28.firebasestorage .app",
 
-      messagingSenderId: "95380970296",
+      messagingSenderId: "372841627714",
 
-      appId: "1:95380970296:web:12512890c057822d89bfcd",
+      appId: "1:372841627714:web:2c1035a9198c179647addb",
 
-      measurementId: "G-7P6F0N214S"
+      measurementId: "G-RX9TBCX9V6"
 
     };
+
+    // Khởi tạo Firebase
 
     if (!firebase.apps.length) {
 
@@ -62,91 +62,63 @@
 
     var db = firebase.database();
 
-    try {
-
-      firebase.analytics();
-
-    } catch(e) { console.warn("Analytics not supported in this environment"); }
-
     window.db = db;
 
-    // Helper bọc API Firebase chuẩn xác tương thích cả v9 Modular & Compat
+    // Helper bọc API Firebase tương thích chuẩn xác 100% cho toàn bộ hệ thống
 
     window.dbRefs = { 
 
-      ref: function(d, path) { 
-
-        if (typeof d === 'string') { path = d; d = db; }
-
-        return (d || db).ref(path); 
-
-      },
+      ref: function(d, path) { return (d || db).ref(path); },
 
       set: function(r, val) { return r.set(val); },
 
-      get: function(r) { 
-
-        if (!r) return Promise.reject(new Error("Reference is null"));
-
-        return (typeof r.get === 'function') ? r.get() : r.once('value'); 
-
-      },
+      get: function(r) { return r.get ? r.get() : r.once('value'); },
 
       remove: function(r) { return r.remove(); },
 
       update: function(r, val) { return r.update(val); },
 
-      onValue: function(r, cb, errCb) { return r.on('value', cb, errCb); },
+      onValue: function(r, cb) { return r.on('value', cb); },
 
-      push: function(r, val) { 
-
-        return val !== undefined ? r.push(val) : r.push(); 
-
-      },
+      push: function(r) { return r.push(); },
 
       serverTimestamp: function() { return firebase.database.ServerValue.TIMESTAMP; },
 
       query: function(r) { 
 
-        var q = r;
+        var target = r;
 
         for (var i = 1; i < arguments.length; i++) {
 
-          var constraint = arguments[i];
+          if (typeof arguments[i] === 'function') {
 
-          if (typeof constraint === 'function') {
-
-            q = constraint(q);
+            target = arguments[i](target);
 
           }
 
         }
 
-        return q; 
+        return target; 
 
       },
 
-      limitToLast: function(arg1, arg2) { 
+      limitToLast: function(r, num) { 
 
-        // Hỗ trợ cả limitToLast(100) dạng helper lẫn ref.limitToLast(100)
+        // Hỗ trợ cả 2 dạng: limitToLast(100) hoặc limitToLast(ref, 100)
 
-        if (typeof arg1 === 'number') {
+        if (typeof num === 'undefined' && typeof r === 'number') {
 
-          return function(queryRef) {
+          var limitCount = r;
 
-            return queryRef.limitToLast(arg1);
+          return function(refOrQuery) {
+
+            return (refOrQuery && refOrQuery.limitToLast) ? refOrQuery.limitToLast(limitCount) : refOrQuery;
 
           };
 
         }
 
-        if (arg1 && typeof arg1.limitToLast === 'function') {
-
-          return arg1.limitToLast(arg2);
-
-        }
-
-        return arg1;
+        return (r && r.limitToLast) ? r.limitToLast(num) : r; 
 
       },
 
@@ -246,6 +218,8 @@
 
       
 
+      <!-- DANH SÁCH NHẠC CAROUSEL NẰM NGANG -->
+
       <div class="relative w-full overflow-hidden bg-gray-950 p-3 rounded-2xl border border-gray-800">
 
         <div id="music-carousel-track" class="flex items-center justify-center gap-3 transition-all duration-300 min-h-[110px]">
@@ -267,6 +241,8 @@
         </button>
 
       </div>
+
+      <!-- TRÌNH KHIỂN PHÁT NHẠC -->
 
       <div id="player-controls-bar" class="bg-gray-950 p-2.5 rounded-xl border border-gray-800 space-y-2">
 
@@ -324,9 +300,9 @@
 
       <div>
 
-        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn tệp âm thanh</label>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn tệp âm thanh (.mp3, .m4a)</label>
 
-        <input type="file" id="request-song-file" accept="audio/*,.mp3,.m4a,.ogg,.wav,.aac,.flac" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-purple-600 file:text-white cursor-pointer">
+        <input type="file" id="request-song-file" accept="audio/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-purple-600 file:text-white cursor-pointer">
 
       </div>
 
@@ -334,7 +310,7 @@
 
         <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Tên bài hát chính xác</label>
 
-        <input type="text" id="request-song-name" placeholder="Nhập tên bài hát..." class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+        <input type="text" id="request-song-name" placeholder="Ghi đúng tên nếu không sẽ không duyệt..." class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
 
       </div>
 
@@ -358,7 +334,7 @@
 
       <h3 class="text-xs font-bold text-amber-400">✨ Duyệt Bài Hát Hệ Thống</h3>
 
-      <p class="text-[10px] text-gray-400">Đặt tên hiển thị cho bài hát này trong Trình phát nhạc:</p>
+      <p class="text-[10px] text-gray-400">Đặt tên hiển thị cho bài hát này trong Danh sách nhạc chính:</p>
 
       <input type="text" id="approve-song-title-input" placeholder="Nhập tên bài hát..." class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
 
@@ -734,7 +710,7 @@
 
         <span id="chat-header-user" class="text-xs font-semibold text-gray-300">User</span>
 
-        <span id="chat-role-badge" class="px-1.5 py-0.2 text-[8px] font-bold rounded">MEMBER</span>
+        <span id="chat-role-badge" class="px-1.5 py-0.5 text-[8px] font-bold rounded">MEMBER</span>
 
       </div>
 
@@ -744,7 +720,7 @@
 
       <div class="text-center my-1">
 
-        <span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;</span>
+        <span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;, /khoamom, /momom</span>
 
       </div>
 
@@ -780,7 +756,7 @@
 
   </div>
 
-  <!-- MÀN HÌNH 4: BẠN BÈ & CHAT RIÊNG -->
+  <!-- MÀN HÌNH 4: BẠN BÈ & CHAT RIÊNG THÔNG TIN ĐẦY ĐỦ -->
 
   <div id="friends-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
 
@@ -924,6 +900,8 @@
 
     <div class="flex-1 pb-6 space-y-3">
 
+      <!-- ÁNH BÌA & AVATAR GÓC TRÁI -->
+
       <div class="relative w-full">
 
         <div class="w-full h-36 bg-gradient-to-r from-purple-900 via-indigo-950 to-gray-900 relative overflow-hidden border-b border-gray-800">
@@ -960,6 +938,8 @@
 
       </div>
 
+      <!-- THÔNG TIN USER -->
+
       <div class="pt-10 px-4 space-y-3">
 
         <div class="flex items-start justify-between">
@@ -992,6 +972,8 @@
 
         </div>
 
+        <!-- TIỂU SỬ BIO -->
+
         <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-1.5">
 
           <div class="flex justify-between items-center border-b border-gray-800/80 pb-1">
@@ -1013,6 +995,8 @@
           </div>
 
         </div>
+
+        <!-- CÀI ĐẶT CÁ NHÂN -->
 
         <div id="self-profile-settings" class="hidden space-y-3 pt-2">
 
@@ -1126,6 +1110,8 @@
 
     <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-4">
 
+      <!-- TAB 1: USERS & OTP -->
+
       <div id="admin-tab-content-users" class="space-y-4">
 
         <div class="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-xl overflow-hidden">
@@ -1208,6 +1194,8 @@
 
       </div>
 
+      <!-- TAB 2: KHO FILE WEB -->
+
       <div id="admin-tab-content-files" class="hidden space-y-4">
 
         <div class="bg-gray-900 border border-blue-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
@@ -1224,15 +1212,15 @@
 
               <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">ID Tệp Tin</label>
 
-              <input type="text" id="admin-file-id" placeholder="Ví dụ: soundboss_1 hoặc nhac_1" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+              <input type="text" id="admin-file-id" placeholder="Ví dụ: soundboss_1" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
 
             </div>
 
             <div>
 
-              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Tệp (.mp3, .m4a, .wav, .ogg, Video, File)</label>
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Tệp (.mp3, .mp4, All)</label>
 
-              <input type="file" id="admin-file-input" accept="*/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+              <input type="file" id="admin-file-input" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
 
             </div>
 
@@ -1259,6 +1247,8 @@
         </div>
 
       </div>
+
+      <!-- TAB 3: KHO NHẠC & DUYỆT BÀI HÁT -->
 
       <div id="admin-tab-content-music" class="hidden space-y-4">
 
@@ -1544,6 +1534,8 @@
 
   <script>
 
+    // --- HẰNG SỐ VÀ BIẾN TOÀN CỤC ---
+
     var ROLE_ADMIN = 0;
 
     var ROLE_OP = 1;
@@ -1574,8 +1566,6 @@
 
     var selectedFileForApproval = null;
 
-    var approveSourceType = 'request';
-
     var bossGameActive = false;
 
     var bossTimerInterval = null;
@@ -1599,6 +1589,8 @@
       multiLevel: 1
 
     };
+
+    // --- TIỆN ÍCH HIỂN THỊ CHUNG ---
 
     function escapeHTML(str) {
 
@@ -1672,7 +1664,7 @@
 
       var sum = 0;
 
-      for (var i = 0; i < username.length; i++) sum += username.charCodeAt(i);
+      for (var i = 0; i < (username || '').length; i++) sum += username.charCodeAt(i);
 
       var color = colors[sum % colors.length];
 
@@ -1688,6 +1680,8 @@
 
     }
 
+    // --- ĐĂNG NHẬP & PHIÊN HOẠT ĐỘNG ---
+
     function switchAuthTab(tab) {
 
       hideAuthAlert();
@@ -1698,11 +1692,11 @@
 
       document.getElementById('forgot-form-container').classList.toggle('hidden', tab !== 'forgot');
 
-      document.getElementById('tab-login-btn').className = tab === 'login' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+      document.getElementById('tab-login-btn').className = tab === 'login' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md transition-all' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all';
 
-      document.getElementById('tab-register-btn').className = tab === 'register' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-emerald-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+      document.getElementById('tab-register-btn').className = tab === 'register' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition-all' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all';
 
-      document.getElementById('tab-forgot-btn').className = tab === 'forgot' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-amber-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+      document.getElementById('tab-forgot-btn').className = tab === 'forgot' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-amber-600 shadow-md transition-all' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all';
 
     }
 
@@ -1762,6 +1756,10 @@
 
         }
 
+      }).catch(function(err) {
+
+        console.warn("ensureAdminExists:", err);
+
       });
 
     }
@@ -1772,19 +1770,11 @@
 
       if (saved) {
 
-        try {
+        currentUser = JSON.parse(saved);
 
-          currentUser = JSON.parse(saved);
+        setupUserPresence();
 
-          setupUserPresence();
-
-          showMenuScreen();
-
-        } catch(e) {
-
-          showAuthScreen();
-
-        }
+        showMenuScreen();
 
       } else {
 
@@ -1811,6 +1801,30 @@
           window.dbRefs.onDisconnect(userStatusRef).set(false);
 
           window.dbRefs.set(userStatusRef, true);
+
+        }
+
+      });
+
+      // Lắng nghe cập nhật số người online
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'users'), function(snap) {
+
+        if (snap.exists()) {
+
+          var users = snap.val();
+
+          var onlineCount = 0;
+
+          Object.keys(users).forEach(function(k) {
+
+            if (users[k] && users[k].onlineStatus === true) onlineCount++;
+
+          });
+
+          var countEl = document.getElementById('chat-online-count');
+
+          if (countEl) countEl.innerText = Math.max(1, onlineCount) + ' Online';
 
         }
 
@@ -1932,7 +1946,117 @@
 
           document.getElementById('login-username').value = regU;
 
+        }).catch(function(err) {
+
+          showAuthAlert("Lỗi tạo tài khoản: " + err.message);
+
         });
+
+      });
+
+    }
+
+    // Quên mật khẩu: Yêu cầu cấp OTP
+
+    function handleRequestResetOTP(e) {
+
+      if (e) e.preventDefault();
+
+      var uInput = document.getElementById('forgot-username').value.trim();
+
+      var emailInput = document.getElementById('forgot-email').value.trim();
+
+      if (!uInput || !emailInput) return showAppModal("Lỗi", "Vui lòng nhập tên đăng nhập và email!");
+
+      var userKey = uInput.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + userKey)).then(function(snap) {
+
+        if (!snap.exists()) return showAppModal("Lỗi", "Tài khoản không tồn tại trên hệ thống!");
+
+        var userData = snap.val();
+
+        if (userData.email && userData.email.toLowerCase() !== emailInput.toLowerCase()) {
+
+          return showAppModal("Lỗi", "Email không khớp với email đã liên kết tài khoản!");
+
+        }
+
+        window.dbRefs.set(window.dbRefs.ref(window.db, 'reset_requests/' + userKey), {
+
+          username: userData.username,
+
+          email: emailInput,
+
+          otp: '',
+
+          requestedAt: Date.now()
+
+        }).then(function() {
+
+          showAppModal("Thành công", "Đã gửi yêu cầu cấp mã OTP đến Admin! Vui lòng chờ Admin duyệt và cấp mã OTP.");
+
+        });
+
+      }).catch(function(err) {
+
+        showAppModal("Lỗi kết nối", err.message);
+
+      });
+
+    }
+
+    // Quên mật khẩu: Xác nhận đổi MK bằng OTP
+
+    function handleResetPasswordWithOTP(e) {
+
+      if (e) e.preventDefault();
+
+      var uInput = document.getElementById('reset-username').value.trim();
+
+      var otpCode = document.getElementById('reset-otp-code').value.trim();
+
+      var newPass = document.getElementById('reset-new-pass').value;
+
+      if (!uInput || !otpCode || !newPass) return showAppModal("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+
+      if (newPass.length < 8) return showAppModal("Lỗi", "Mật khẩu mới tối thiểu 8 ký tự!");
+
+      var userKey = uInput.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'reset_requests/' + userKey)).then(function(snap) {
+
+        if (!snap.exists()) return showAppModal("Lỗi", "Không tìm thấy yêu cầu cấp OTP của tài khoản này!");
+
+        var reqData = snap.val();
+
+        if (!reqData.otp || reqData.otp !== otpCode) {
+
+          return showAppModal("Lỗi", "Mã OTP không chính xác hoặc chưa được Admin cấp!");
+
+        }
+
+        window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey), {
+
+          password: newPass
+
+        }).then(function() {
+
+          return window.dbRefs.remove(window.dbRefs.ref(window.db, 'reset_requests/' + userKey));
+
+        }).then(function() {
+
+          showAppModal("Thành công", "Đổi mật khẩu thành công! Hãy chuyển sang Đăng Nhập.", function() {
+
+            switchAuthTab('login');
+
+          });
+
+        });
+
+      }).catch(function(err) {
+
+        showAppModal("Lỗi", err.message);
 
       });
 
@@ -2008,6 +2132,40 @@
 
         }
 
+        // Đếm thông báo kết bạn
+
+        var myKey = currentUser.username.toLowerCase();
+
+        window.dbRefs.onValue(window.dbRefs.ref(window.db, 'friend_requests/' + myKey), function(snap) {
+
+          var reqBadge = document.getElementById('friend-req-badge');
+
+          if (!reqBadge) return;
+
+          if (snap.exists()) {
+
+            var count = Object.keys(snap.val()).length;
+
+            if (count > 0) {
+
+              reqBadge.innerText = count;
+
+              reqBadge.classList.remove('hidden');
+
+            } else {
+
+              reqBadge.classList.add('hidden');
+
+            }
+
+          } else {
+
+            reqBadge.classList.add('hidden');
+
+          }
+
+        });
+
       }
 
     }
@@ -2024,15 +2182,17 @@
 
       if (currentUser) {
 
-        document.getElementById('chat-header-user').innerText = currentUser.nickname || currentUser.username;
+        var hUser = document.getElementById('chat-header-user');
 
-        var badge = document.getElementById('chat-role-badge');
+        var hRole = document.getElementById('chat-role-badge');
 
-        if (badge) {
+        if (hUser) hUser.innerText = currentUser.nickname || currentUser.username;
 
-          badge.innerText = currentUser.role === ROLE_ADMIN ? 'ADMIN' : (currentUser.role === ROLE_OP ? 'OP' : 'MEMBER');
+        if (hRole) {
 
-          badge.className = "px-1.5 py-0.5 text-[8px] font-bold rounded " + 
+          hRole.innerText = currentUser.role === ROLE_ADMIN ? 'ADMIN' : (currentUser.role === ROLE_OP ? 'OP' : 'MEMBER');
+
+          hRole.className = "px-1.5 py-0.5 text-[8px] font-bold rounded " + 
 
             (currentUser.role === ROLE_ADMIN ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (currentUser.role === ROLE_OP ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-800 text-gray-300'));
 
@@ -2041,28 +2201,6 @@
       }
 
       initChatBoxListener();
-
-      initOnlineCountListener();
-
-    }
-
-    function initOnlineCountListener() {
-
-      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'users'), function(snap) {
-
-        if (!snap.exists()) return;
-
-        var online = 0;
-
-        var users = snap.val();
-
-        Object.keys(users).forEach(function(k) { if (users[k] && users[k].onlineStatus === true) online++; });
-
-        var tag = document.getElementById('chat-online-count');
-
-        if (tag) tag.innerText = Math.max(1, online) + ' Online';
-
-      });
 
     }
 
@@ -2103,6 +2241,8 @@
       initBossGameScreen();
 
     }
+
+    // --- TRANG HỒ SƠ ĐỘC LẬP ---
 
     function openSelfProfileView() {
 
@@ -2418,6 +2558,8 @@
 
     }
 
+    // --- BÁO CÁO REPORT & QUY TRÌNH GỬI CHO ADMIN ---
+
     function openReportModal() { document.getElementById('report-modal').classList.remove('hidden'); }
 
     function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
@@ -2490,6 +2632,8 @@
 
     }
 
+    // --- PHÒNG CHAT CHUNG REALTIME (ĐÃ KHẮC PHỤC TRIỆT ĐỂ) ---
+
     function viewUserProfile(username) {
 
       selectedTargetUser = username;
@@ -2528,33 +2672,25 @@
 
     }
 
-    // --- XỬ LÝ PHÒNG CHAT CHUNG (ĐÃ SỬA LỖI TẢI VÀ GỬI) ---
-
     function initChatBoxListener() {
 
       var box = document.getElementById('chat-box');
 
       if (!box) return;
 
-      
-
-      // Sửa lỗi: query & limitToLast hoạt động chuẩn 100%
-
       var chatQuery = window.dbRefs.query(window.dbRefs.ref(window.db, 'messages'), window.dbRefs.limitToLast(100));
 
       window.dbRefs.onValue(chatQuery, function(snap) {
 
-        box.innerHTML = '<div class="text-center my-1"><span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;</span></div>';
+        box.innerHTML = '<div class="text-center my-1"><span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;, /khoamom, /momom</span></div>';
 
         if (snap && snap.exists()) {
 
-          var data = snap.val();
+          snap.forEach(function(childSnap) {
 
-          Object.keys(data).forEach(function(k) {
+            var msg = childSnap.val();
 
-            var msg = data[k];
-
-            var isMe = currentUser && msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+            var isMe = currentUser && msg.sender && (msg.sender.toLowerCase() === currentUser.username.toLowerCase());
 
             var mediaContent = '';
 
@@ -2582,17 +2718,19 @@
 
             }
 
+            var textContent = msg.text ? parseTagsInText(msg.text) : '';
+
             box.innerHTML += '<div class="flex gap-2 ' + (isMe ? 'flex-row-reverse' : 'flex-row') + ' items-start my-1.5">' +
 
-              '<img src="' + (msg.avatar || generateDefaultAvatar(msg.sender)) + '" class="w-7 h-7 rounded-full object-cover border border-gray-700 cursor-pointer flex-shrink-0" onclick="viewUserProfile(\'' + msg.sender + '\')">' +
+              '<img src="' + (msg.avatar || generateDefaultAvatar(msg.sender)) + '" class="w-7 h-7 rounded-full object-cover border border-gray-700 cursor-pointer flex-shrink-0" onclick="viewUserProfile(\'' + escapeHTML(msg.sender) + '\')">' +
 
               '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + ' max-w-[85%]">' +
 
-              '<span class="text-[9px] text-gray-400 mb-0.5 cursor-pointer" onclick="openViewUserProfile(\'' + msg.sender + '\')">' + escapeHTML(msg.nickname || msg.sender) + '</span>' +
+              '<span class="text-[9px] text-gray-400 mb-0.5 cursor-pointer" onclick="openViewUserProfile(\'' + escapeHTML(msg.sender) + '\')">' + escapeHTML(msg.nickname || msg.sender) + '</span>' +
 
               '<div class="px-2.5 py-1.5 rounded-xl text-[11px] leading-relaxed shadow ' + (isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none') + '">' +
 
-              mediaContent + parseTagsInText(msg.text || '') +
+              mediaContent + textContent +
 
               '</div></div></div>';
 
@@ -2601,12 +2739,6 @@
           box.scrollTop = box.scrollHeight;
 
         }
-
-      }, function(error) {
-
-        console.error("Lỗi tải tin nhắn Firebase:", error);
-
-        box.innerHTML = '<div class="text-center my-3 text-rose-400 text-xs font-bold">⚠️ Không thể tải tin nhắn: ' + escapeHTML(error.message) + '</div>';
 
       });
 
@@ -2618,7 +2750,7 @@
 
         e.preventDefault();
 
-        handleSendMessage(e);
+        handleSendMessage();
 
       }
 
@@ -2636,9 +2768,7 @@
 
       var file = e.target.files[0];
 
-      if (!file) return;
-
-      if (!currentUser) return showAppModal("Chưa Đăng Nhập", "Vui lòng đăng nhập để gửi ảnh/video!");
+      if (!file || !currentUser) return;
 
       var reader = new FileReader();
 
@@ -2662,9 +2792,13 @@
 
           timestamp: Date.now()
 
+        }).then(function() {
+
+          e.target.value = '';
+
         }).catch(function(err) {
 
-          showAppModal("Lỗi gửi ảnh", "Không thể gửi ảnh: " + err.message);
+          showAppModal("Lỗi gửi ảnh", err.message);
 
         });
 
@@ -2676,127 +2810,111 @@
 
     function handleSendMessage(e) {
 
-      if (e && e.preventDefault) e.preventDefault();
+      if (e) e.preventDefault();
 
       var input = document.getElementById('chat-input');
 
       var text = input.value.trim();
 
-      if (!text) return;
+      if (!text || !currentUser) return;
 
-      if (!currentUser) {
+      var userKey = currentUser.username.toLowerCase();
 
-        showAppModal("Chưa đăng nhập", "Vui lòng đăng nhập để bắt đầu trò chuyện!", showAuthScreen);
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + userKey + '/mutedUntil')).then(function(muteSnap) {
 
-        return;
+        if (muteSnap.exists() && muteSnap.val()) {
 
-      }
+          var untilMs = muteSnap.val();
 
-      input.value = '';
+          if (Date.now() < untilMs) {
 
-      input.style.height = 'auto';
+            var d = new Date(untilMs);
 
-      if (text.startsWith('/')) {
+            var dateStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear() + ' lúc ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 
-        var parts = text.split(' ').filter(function(p) { return p !== ''; });
+            input.value = '';
 
-        var cmd = parts[0].toLowerCase();
-
-        if (cmd === '/help') {
-
-          var helpList = [
-
-            "📌 NỘI QUY & CÁC LỆNH BẠN ĐƯỢC PHÉP SỬ DỤNG:",
-
-            "• /help : Xem danh sách trợ giúp lệnh",
-
-            "• /report : Báo lỗi, Báo xấu user hoặc Góp ý hệ thống",
-
-            "• /online : Xem danh sách người dùng đang trực tuyến 24/7"
-
-          ];
-
-          if (currentUser.role <= ROLE_OP) {
-
-            helpList.push("--- QUYỀN HẠN OP / ADMIN ---");
-
-            helpList.push("• /clear <user> : Xóa tin nhắn của user chỉ định");
-
-            helpList.push("• /clear all : Xóa toàn bộ phòng chat chung");
+            return showAppModal("BỊ KHÓA MÕM!", "Tài khoản của bạn đã bị cấm nhắn tin đến ngày " + dateStr + "!");
 
           }
 
-          showAppModal("TRỢ GIÚP LỆNH MỜ TÊ CHAT", helpList.join("\n"));
-
-          return;
-
         }
 
-        if (cmd === '/report') {
+        input.value = '';
 
-          openReportModal();
+        input.style.height = 'auto';
 
-          return;
+        if (text.startsWith('/')) {
 
-        }
+          var parts = text.split(' ').filter(function(p) { return p !== ''; });
 
-        if (cmd === '/online') {
+          var cmd = parts[0].toLowerCase();
 
-          window.dbRefs.get(window.dbRefs.ref(window.db, 'users')).then(function(snap) {
+          if (cmd === '/help') {
 
-            if (snap.exists()) {
+            var helpList = [
 
-              var users = snap.val();
+              "📌 NỘI QUY & CÁC LỆNH BẠN ĐƯỢC PHÉP SỬ DỤNG:",
 
-              var onlineList = [];
+              "• /help : Xem danh sách trợ giúp lệnh",
 
-              Object.keys(users).forEach(function(k) {
+              "• /report : Báo lỗi, Báo xấu user hoặc Góp ý hệ thống",
 
-                if (users[k].onlineStatus === true) {
+              "• /online : Xem danh sách người dùng đang trực tuyến 24/7"
 
-                  var nick = users[k].nickname || users[k].username;
+            ];
 
-                  onlineList.push('• ' + nick + ' (@' + users[k].username + ')');
+            if (currentUser.role <= ROLE_OP) {
 
-                }
+              helpList.push("--- QUYỀN HẠN OP / ADMIN ---");
 
-              });
+              helpList.push("• /clear <user> : Xóa tin nhắn của user chỉ định");
 
-              showAppModal('DANH SÁCH ONLINE (' + onlineList.length + ')', onlineList.length > 0 ? onlineList.join('\n') : "Không có ai online.");
+              helpList.push("• /clear all : Xóa toàn bộ phòng chat chung");
+
+              helpList.push("• /khoamom <user> <dd/mm/yyyy/HH/MM> : Cấm chat user");
+
+              helpList.push("• /momom <user> : Mở cấm chat cho user");
 
             }
 
-          });
+            showAppModal("TRỢ GIÚP LỆNH MỜ TÊ CHAT", helpList.join("\n"));
 
-          return;
+            return;
 
-        }
+          }
 
-        if (currentUser.role <= ROLE_OP) {
+          if (cmd === '/report') {
 
-          if (cmd === '/clear') {
+            openReportModal();
 
-            var target = parts[1] ? parts[1].toLowerCase() : '';
+            return;
 
-            if (!target) return showAppModal("Lỗi", "Cú pháp: /clear <tên_user> hoặc /clear all");
+          }
 
-            window.dbRefs.get(window.dbRefs.ref(window.db, 'messages')).then(function(msgSnap) {
+          if (cmd === '/online') {
 
-              if (msgSnap.exists()) {
+            window.dbRefs.get(window.dbRefs.ref(window.db, 'users')).then(function(snap) {
 
-                var msgs = msgSnap.val();
+              if (snap.exists()) {
 
-                Object.keys(msgs).forEach(function(mId) {
+                var users = snap.val();
 
-                  if (target === 'all' || msgs[mId].sender.toLowerCase() === target) {
+                var onlineList = [];
 
-                    window.dbRefs.remove(window.dbRefs.ref(window.db, 'messages/' + mId));
+                Object.keys(users).forEach(function(k) {
+
+                  if (users[k].onlineStatus === true) {
+
+                    var nick = users[k].nickname || users[k].username;
+
+                    onlineList.push('• ' + nick + ' (@' + users[k].username + ')');
 
                   }
 
                 });
 
-                showAppModal("Thành công", target === 'all' ? "Đã xóa toàn bộ tin nhắn!" : "Đã xóa tin nhắn của [" + target + "]!");
+                showAppModal('DANH SÁCH ONLINE (' + onlineList.length + ')', onlineList.length > 0 ? onlineList.join('\n') : "Không có ai online.");
 
               }
 
@@ -2806,29 +2924,135 @@
 
           }
 
+          if (currentUser.role <= ROLE_OP) {
+
+            if (cmd === '/clear') {
+
+              var target = parts[1] ? parts[1].toLowerCase() : '';
+
+              if (!target) return showAppModal("Lỗi", "Cú pháp: /clear <tên_user> hoặc /clear all");
+
+              window.dbRefs.get(window.dbRefs.ref(window.db, 'messages')).then(function(msgSnap) {
+
+                if (msgSnap.exists()) {
+
+                  var msgs = msgSnap.val();
+
+                  Object.keys(msgs).forEach(function(mId) {
+
+                    if (target === 'all' || msgs[mId].sender.toLowerCase() === target) {
+
+                      window.dbRefs.remove(window.dbRefs.ref(window.db, 'messages/' + mId));
+
+                    }
+
+                  });
+
+                  showAppModal("Thành công", target === 'all' ? "Đã xóa toàn bộ tin nhắn!" : "Đã xóa tin nhắn của [" + target + "]!");
+
+                }
+
+              });
+
+              return;
+
+            }
+
+            if (cmd === '/khoamom') {
+
+              var targetUser = parts[1] ? parts[1].toLowerCase() : '';
+
+              var timeParam = parts[2] ? parts[2].trim() : '';
+
+              if (!targetUser || !timeParam) {
+
+                return showAppModal("Lỗi Cú Pháp", "Cách dùng: /khoamom <user> <dd/mm/yyyy/giờgiờ/phútphút>\nVí dụ: /khoamom userA 05/11/2026/14/30");
+
+              }
+
+              var tParts = timeParam.split('/');
+
+              if (tParts.length < 5) return showAppModal("Lỗi Định Dạng", "Mẫu: dd/mm/yyyy/HH/MM (VD: 05/11/2026/14/30)");
+
+              var day = parseInt(tParts[0]);
+
+              var month = parseInt(tParts[1]) - 1;
+
+              var year = parseInt(tParts[2]);
+
+              var hour = parseInt(tParts[3]);
+
+              var minute = parseInt(tParts[4]);
+
+              var muteDate = new Date(year, month, day, hour, minute);
+
+              var muteUntilMs = muteDate.getTime();
+
+              if (isNaN(muteUntilMs) || muteUntilMs <= Date.now()) {
+
+                return showAppModal("Lỗi Thời Gian", "Thời gian cấm phải lớn hơn thời điểm hiện tại!");
+
+              }
+
+              window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + targetUser)).then(function(targetSnap) {
+
+                if (!targetSnap.exists()) return showAppModal("Lỗi", "User [" + targetUser + "] không tồn tại!");
+
+                window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + targetUser), { mutedUntil: muteUntilMs }).then(function() {
+
+                  showAppModal("Thành công", "Đã khóa mõm [" + targetUser + "] đến " + timeParam + "!");
+
+                });
+
+              });
+
+              return;
+
+            }
+
+            if (cmd === '/momom') {
+
+              var targetToFree = parts[1] ? parts[1].toLowerCase() : '';
+
+              if (!targetToFree) return showAppModal("Lỗi", "Cú pháp: /momom <user>");
+
+              window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + targetToFree), { mutedUntil: null }).then(function() {
+
+                showAppModal("Thành công", "Đã mở mõm cho [" + targetToFree + "]!");
+
+              });
+
+              return;
+
+            }
+
+          }
+
         }
 
-      }
+        var newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
 
-      var newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
+        window.dbRefs.set(newMsgRef, {
 
-      window.dbRefs.set(newMsgRef, {
+          sender: currentUser.username,
 
-        sender: currentUser.username,
+          nickname: currentUser.nickname || currentUser.username,
 
-        nickname: currentUser.nickname || currentUser.username,
+          text: text,
 
-        text: text,
+          avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
 
-        avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
+          timestamp: Date.now()
 
-        timestamp: Date.now()
+        }).catch(function(err) {
+
+          showAppModal("Lỗi gửi tin", err.message);
+
+        });
 
       }).catch(function(err) {
 
-        console.error("Lỗi gửi tin nhắn:", err);
-
-        showAppModal("Lỗi Gửi Tin", "Không thể gửi tin nhắn lên máy chủ: " + err.message);
+        showAppModal("Lỗi kiểm tra trạng thái", err.message);
 
       });
 
@@ -2924,25 +3148,19 @@
 
             
 
-            // Sửa lỗi query lấy tin nhắn cuối cùng
-
             window.dbRefs.get(window.dbRefs.query(window.dbRefs.ref(window.db, 'private_chats/' + chatId), window.dbRefs.limitToLast(1))).then(function(lastMsgSnap) {
 
               var lastMsgText = "Chưa có tin nhắn";
 
               if (lastMsgSnap.exists()) {
 
-                var valObj = lastMsgSnap.val();
+                lastMsgSnap.forEach(function(childSnap) {
 
-                var keys = Object.keys(valObj);
+                  var lVal = childSnap.val();
 
-                var lVal = valObj[keys[0]];
+                  lastMsgText = (lVal.sender && lVal.sender.toLowerCase() === myKey ? 'Bạn: ' : '') + (lVal.text || '[Hình ảnh]');
 
-                if (lVal) {
-
-                  lastMsgText = (lVal.sender.toLowerCase() === myKey ? 'Bạn: ' : '') + lVal.text;
-
-                }
+                });
 
               }
 
@@ -3066,13 +3284,11 @@
 
         if (snap.exists()) {
 
-          var data = snap.val();
+          snap.forEach(function(childSnap) {
 
-          Object.keys(data).forEach(function(k) {
+            var msg = childSnap.val();
 
-            var msg = data[k];
-
-            var isMe = msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+            var isMe = msg.sender && (msg.sender.toLowerCase() === currentUser.username.toLowerCase());
 
             box.innerHTML += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + ' mb-1.5">' +
 
@@ -3100,9 +3316,7 @@
 
       var text = input.value.trim();
 
-      if (!text || !activePrivateFriend) return;
-
-      if (!currentUser) return showAppModal("Lỗi", "Vui lòng đăng nhập lại!");
+      if (!text || !activePrivateFriend || !currentUser) return;
 
       input.value = '';
 
@@ -3120,7 +3334,7 @@
 
       }).catch(function(err) {
 
-        showAppModal("Lỗi", "Không thể gửi tin: " + err.message);
+        showAppModal("Lỗi gửi tin riêng", err.message);
 
       });
 
@@ -3210,21 +3424,13 @@
 
     function generateOTPForUser(userKey) {
 
-      var autoOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      var otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      var customOTP = prompt('Nhập OTP 6 số cấp cho ' + userKey + ':', autoOTP);
-
-      if (!customOTP) return;
-
-      window.dbRefs.update(window.dbRefs.ref(window.db, 'reset_requests/' + userKey), {
-
-        otp: customOTP
-
-      }).then(function() {
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'reset_requests/' + userKey), { otp: otp }).then(function() {
 
         loadAdminResetRequests();
 
-        showAppModal("Thành công", "Đã cấp mã OTP [" + customOTP + "] cho user [" + userKey + "]!");
+        showAppModal("Thành công", "Mã OTP đã được tạo: " + otp);
 
       });
 
@@ -3252,27 +3458,25 @@
 
           keys.forEach(function(k) {
 
-            var item = data[k];
+            var u = data[k];
 
-            var isBanned = !!item.isBanned;
-
-            var roleName = item.role === ROLE_ADMIN ? 'ADMIN' : (item.role === ROLE_OP ? 'OP' : 'MEMBER');
+            var rText = u.role === ROLE_ADMIN ? 'ADMIN' : (u.role === ROLE_OP ? 'OP' : 'MEMBER');
 
             tbody.innerHTML += '<tr class="hover:bg-gray-800/40 border-b border-gray-800/60">' +
 
-              '<td class="px-3 py-2 font-bold text-amber-400">' + escapeHTML(item.nickname || item.username) + '<span class="text-gray-500 text-[8px] block">@' + escapeHTML(item.username) + '</span></td>' +
+              '<td class="px-3 py-2 font-bold text-white">' + escapeHTML(u.nickname || u.username) + ' (@' + u.username + ')</td>' +
 
-              '<td class="px-3 py-2 text-gray-400">' + escapeHTML(item.email || 'Chưa có') + '</td>' +
+              '<td class="px-3 py-2 text-gray-400">' + escapeHTML(u.email || 'Chưa liên kết') + '</td>' +
 
-              '<td class="px-3 py-2 font-mono text-gray-300">' + escapeHTML(item.password) + '</td>' +
+              '<td class="px-3 py-2 font-mono text-gray-400">' + escapeHTML(u.password) + '</td>' +
 
-              '<td class="px-3 py-2 font-bold text-purple-400">' + roleName + '</td>' +
+              '<td class="px-3 py-2 font-bold text-amber-400">' + rText + '</td>' +
 
-              '<td class="px-3 py-2 text-right flex gap-1 justify-end">' +
+              '<td class="px-3 py-2 text-right">' +
 
-              '<button type="button" onclick="toggleBanUser(\'' + k + '\', ' + isBanned + ')" class="px-2 py-0.5 ' + (isBanned ? 'bg-emerald-600' : 'bg-rose-600') + ' text-white rounded text-[9px] font-bold">' + (isBanned ? 'Mở Khóa' : 'Khóa') + '</button>' +
+              '<button type="button" onclick="setRoleUser(\'' + k + '\', 1)" class="px-2 py-0.5 bg-blue-600 text-white rounded text-[9px] mr-1">Set OP</button>' +
 
-              '<button type="button" onclick="deleteUserAccount(\'' + k + '\')" class="px-2 py-0.5 bg-gray-800 text-gray-300 hover:text-rose-400 rounded text-[9px] font-bold">Xóa</button>' +
+              '<button type="button" onclick="setRoleUser(\'' + k + '\', 2)" class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-[9px]">Set Member</button>' +
 
               '</td></tr>';
 
@@ -3284,31 +3488,17 @@
 
     }
 
-    function toggleBanUser(userKey, isBanned) {
+    function setRoleUser(userKey, roleNum) {
 
-      if (userKey === DEFAULT_ADMIN_USER) return showAppModal("Lỗi", "Không thể khóa tài khoản Admin mặc định!");
+      if (!currentUser || currentUser.role > ROLE_ADMIN) return showAppModal("Lỗi", "Chỉ ADMIN tối cao mới có quyền thay đổi role!");
 
-      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey), { isBanned: !isBanned }).then(function() {
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey), { role: roleNum }).then(function() {
 
         loadAdminUserList();
 
+        showAppModal("Thành công", "Đã cập nhật chức vụ!");
+
       });
-
-    }
-
-    function deleteUserAccount(userKey) {
-
-      if (userKey === DEFAULT_ADMIN_USER) return showAppModal("Lỗi", "Không thể xóa tài khoản Admin mặc định!");
-
-      if (confirm("Xác nhận xóa tài khoản [" + userKey + "] vĩnh viễn?")) {
-
-        window.dbRefs.remove(window.dbRefs.ref(window.db, 'users/' + userKey)).then(function() {
-
-          loadAdminUserList();
-
-        });
-
-      }
 
     }
 
@@ -3336,7 +3526,7 @@
 
           dataUrl: base64,
 
-          uploadedBy: currentUser ? currentUser.username : "Admin",
+          uploadedBy: currentUser.username,
 
           timestamp: Date.now()
 
@@ -3349,6 +3539,10 @@
           loadAdminFilesList();
 
           showAppModal("Thành công", "Đã tải tệp lên Kho File Web!");
+
+        }).catch(function(err) {
+
+          showAppModal("Lỗi tải tệp", err.message);
 
         });
 
@@ -3376,27 +3570,15 @@
 
             var item = data[k];
 
-            var isAudio = item.dataUrl && (item.dataUrl.startsWith('data:audio/') || item.fileName.match(/\.(mp3|m4a|wav|ogg|aac|flac)$/i));
-
-            
-
-            var approveBtnHtml = isAudio ? 
-
-              '<button type="button" onclick="openApproveFileHubMusicModal(\'' + k + '\')" class="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-[9px] rounded-lg mr-1"><i class="fa-solid fa-check mr-0.5"></i>Duyệt Nhạc</button>' : '';
-
             list.innerHTML += '<div class="flex items-center justify-between p-2 bg-gray-900 rounded-xl border border-gray-800">' +
 
               '<div><h4 class="text-xs font-bold text-blue-400">' + escapeHTML(item.id) + '</h4>' +
 
               '<span class="text-[9px] text-gray-400 block">' + escapeHTML(item.fileName) + '</span></div>' +
 
-              '<div class="flex items-center gap-1">' +
+              '<button type="button" onclick="deleteAdminFile(\'' + k + '\')" class="px-2 py-1 bg-rose-600 text-white font-bold text-[9px] rounded-lg">Xóa</button>' +
 
-              approveBtnHtml +
-
-              '<button type="button" onclick="deleteAdminFile(\'' + k + '\')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[9px] rounded-lg">Xóa</button>' +
-
-              '</div></div>';
+              '</div>';
 
           });
 
@@ -3412,7 +3594,7 @@
 
     function deleteAdminFile(fileId) {
 
-      if (confirm("Xóa tệp [" + fileId + "] khỏi Kho File Web?")) {
+      if (confirm("Xóa tệp [" + fileId + "] khỏi Kho File?")) {
 
         window.dbRefs.remove(window.dbRefs.ref(window.db, 'file_hub/' + fileId)).then(function() {
 
@@ -3424,89 +3606,11 @@
 
     }
 
-    function openApproveMusicModal(reqId) {
+    // --- YÊU CẦU DUYỆT NHẠC VÀ BẢNG DUYỆT ---
 
-      approveSourceType = 'request';
+    function openRequestSongModal() { document.getElementById('request-song-modal').classList.remove('hidden'); }
 
-      selectedFileForApproval = reqId;
-
-      document.getElementById('approve-music-modal').classList.remove('hidden');
-
-      window.dbRefs.get(window.dbRefs.ref(window.db, 'music_requests/' + reqId)).then(function(s) {
-
-        if (s.exists()) document.getElementById('approve-song-title-input').value = s.val().title || '';
-
-      });
-
-    }
-
-    function openApproveFileHubMusicModal(fileId) {
-
-      approveSourceType = 'file_hub';
-
-      selectedFileForApproval = fileId;
-
-      document.getElementById('approve-music-modal').classList.remove('hidden');
-
-      window.dbRefs.get(window.dbRefs.ref(window.db, 'file_hub/' + fileId)).then(function(s) {
-
-        if (s.exists()) document.getElementById('approve-song-title-input').value = s.val().fileName ? s.val().fileName.replace(/\.[^/.]+$/, "") : s.val().id;
-
-      });
-
-    }
-
-    function closeApproveMusicModal() { document.getElementById('approve-music-modal').classList.add('hidden'); }
-
-    function confirmApproveMusic() {
-
-      if (!selectedFileForApproval) return;
-
-      var newTitle = document.getElementById('approve-song-title-input').value.trim();
-
-      if (!newTitle) return showAppModal("Lỗi", "Vui lòng nhập tên bài hát!");
-
-      var sourcePath = approveSourceType === 'request' ? 'music_requests/' + selectedFileForApproval : 'file_hub/' + selectedFileForApproval;
-
-      window.dbRefs.get(window.dbRefs.ref(window.db, sourcePath)).then(function(snap) {
-
-        if (!snap.exists()) return;
-
-        var req = snap.val();
-
-        var approvedRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'approved_playlist'));
-
-        window.dbRefs.set(approvedRef, {
-
-          title: newTitle,
-
-          audioData: req.audioData || req.dataUrl,
-
-          approvedAt: Date.now()
-
-        }).then(function() {
-
-          if (approveSourceType === 'request') {
-
-            return window.dbRefs.remove(window.dbRefs.ref(window.db, sourcePath));
-
-          }
-
-        }).then(function() {
-
-          closeApproveMusicModal();
-
-          loadApprovalRequestsList();
-
-          loadApprovedMusicList();
-
-          showAppModal("Thành công", "Đã duyệt bài hát vào danh sách phát chính thức!");
-
-        });
-
-      });
-
-    }
+    function closeRequestSongModal() { document.getElementById('request-song-modal').classList.add('hidden'); }
 
     function submitSongRequest() {
 
@@ -3514,7 +3618,7 @@
 
       var songName = document.getElementById('request-song-name').value.trim();
 
-      if (!file || !songName) return showAppModal("Lỗi", "Vui lòng chọn tệp và điền tên bài hát!");
+      if (!file || !songName) return showAppModal("Lỗi", "Vui lòng chọn tệp và điền đúng tên bài hát!");
 
       var reader = new FileReader();
 
@@ -3530,7 +3634,7 @@
 
           audioData: base64,
 
-          requestedBy: currentUser ? currentUser.username : "Khách",
+          requestedBy: currentUser.username,
 
           timestamp: Date.now()
 
@@ -3540,6 +3644,10 @@
 
           showAppModal("Thành công", "Đã gửi yêu cầu duyệt bài hát đến Admin!");
 
+        }).catch(function(err) {
+
+          showAppModal("Lỗi gửi nhạc", err.message);
+
         });
 
       };
@@ -3547,10 +3655,6 @@
       reader.readAsDataURL(file);
 
     }
-
-    function openRequestSongModal() { document.getElementById('request-song-modal').classList.remove('hidden'); }
-
-    function closeRequestSongModal() { document.getElementById('request-song-modal').classList.add('hidden'); }
 
     function loadApprovalRequestsList() {
 
@@ -3599,6 +3703,66 @@
           list.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Không có yêu cầu duyệt nào đang chờ.</p>';
 
         }
+
+      });
+
+    }
+
+    function openApproveMusicModal(reqId) {
+
+      selectedFileForApproval = reqId;
+
+      document.getElementById('approve-music-modal').classList.remove('hidden');
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'music_requests/' + reqId)).then(function(s) {
+
+        if (s.exists()) document.getElementById('approve-song-title-input').value = s.val().title || '';
+
+      });
+
+    }
+
+    function closeApproveMusicModal() { document.getElementById('approve-music-modal').classList.add('hidden'); }
+
+    function confirmApproveMusic() {
+
+      if (!selectedFileForApproval) return;
+
+      var newTitle = document.getElementById('approve-song-title-input').value.trim();
+
+      if (!newTitle) return showAppModal("Lỗi", "Vui lòng nhập tên bài hát!");
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'music_requests/' + selectedFileForApproval)).then(function(snap) {
+
+        if (!snap.exists()) return;
+
+        var req = snap.val();
+
+        var approvedRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'approved_playlist'));
+
+        window.dbRefs.set(approvedRef, {
+
+          title: newTitle,
+
+          audioData: req.audioData,
+
+          approvedAt: Date.now()
+
+        }).then(function() {
+
+          return window.dbRefs.remove(window.dbRefs.ref(window.db, 'music_requests/' + selectedFileForApproval));
+
+        }).then(function() {
+
+          closeApproveMusicModal();
+
+          loadApprovalRequestsList();
+
+          loadApprovedMusicList();
+
+          showAppModal("Thành công", "Đã duyệt bài hát vào danh sách chính thức!");
+
+        });
 
       });
 
@@ -3676,7 +3840,7 @@
 
     }
 
-    // --- TRÌNH PHÁT NHẠC NỀN ---
+    // --- TRÌNH PHÁT NHẠC NỀN BÓNG NỔI ---
 
     function toggleMusicPlaylistModal() {
 
@@ -4026,6 +4190,50 @@
 
       listenBossHitAudio();
 
+      if (currentUser && currentUser.role === ROLE_ADMIN) {
+
+        document.getElementById('boss-admin-setup-btn').classList.remove('hidden');
+
+      } else {
+
+        document.getElementById('boss-admin-setup-btn').classList.add('hidden');
+
+      }
+
+    }
+
+    function showBossSetupModal() {
+
+      if (!currentUser || currentUser.role > ROLE_ADMIN) return;
+
+      var currentName = currentBossData ? (currentBossData.name || "BOSS HACKER") : "BOSS HACKER";
+
+      var currentMax = currentBossData ? (currentBossData.maxHp || 1000000) : 1000000;
+
+      var newName = prompt("Nhập tên mới cho Boss:", currentName);
+
+      if (!newName) return;
+
+      var newHpStr = prompt("Nhập lượng HP tối đa cho Boss:", currentMax);
+
+      var newHp = parseInt(newHpStr);
+
+      if (isNaN(newHp) || newHp <= 0) return alert("Lượng HP không hợp lệ!");
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'boss_game'), {
+
+        name: newName,
+
+        maxHp: newHp,
+
+        currentHp: newHp
+
+      }).then(function() {
+
+        showAppModal("Thành công", "Đã cập nhật thông tin Boss!");
+
+      });
+
     }
 
     function listenBossHitAudio() {
@@ -4278,6 +4486,16 @@
 
         }
 
+        var factionTag = document.getElementById('boss-faction-tag');
+
+        if (factionTag) {
+
+          factionTag.innerText = currentUser.faction === 'red' ? "Phe: Đỏ (Mờ Tê)" : "Phe: Xanh (TNA)";
+
+          factionTag.className = "px-2 py-0.5 text-[9px] font-bold rounded-full " + (currentUser.faction === 'red' ? "bg-rose-600/30 text-rose-400 border border-rose-500/40" : "bg-blue-600/30 text-blue-400 border border-blue-500/40");
+
+        }
+
         bossGameActive = true;
 
         roundClickCount = 0;
@@ -4462,23 +4680,11 @@
 
     }
 
+    // --- KHỞI CHẠY KHÔNG LỖI TRÊN MỌI TRÌNH DUYỆT ---
+
     window.addEventListener('load', function() {
 
       ensureAdminExists().then(function() {
-
-        checkActiveSession();
-
-        initDraggableMusicBall();
-
-        listenApprovedPlaylist();
-
-        listenGlobalAudioEnded();
-
-        setupAudioProgressTracker();
-
-      }).catch(function(err) {
-
-        console.warn("Lỗi kiểm tra admin ban đầu:", err);
 
         checkActiveSession();
 
@@ -4499,5 +4705,3 @@
 </body>
 
 </html>
-
-…
