@@ -1,111 +1,4503 @@
+```html
+
 <!DOCTYPE html>
+
 <html lang="vi">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Java Game TV Controller</title>
-    
-    <!-- Link thư viện giả lập J2ME WebAssembly mới nhất (Hoạt động 100%) -->
-    <script src="https://cdn.jsdelivr.net/npm/meep-j2me-emulator@latest/dist/meep.js"></script>
 
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body { background-color: #0d1117; color: #ffffff; font-family: sans-serif; display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+  <meta charset="UTF-8">
 
-        #game-section { flex: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #000; border-right: 2px solid #30363d; position: relative; }
-        #emulator-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-        canvas { max-width: 95% !important; max-height: 95vh !important; object-fit: contain; image-rendering: pixelated; }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-        #controls-section { flex: 1; padding: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #161b22; }
-        .keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 340px; }
+  <title>Mờ Tê Chat - Phòng Chat Trực Tuyến & Game Boss Pro</title>
 
-        .btn { background-color: #21262d; color: #c9d1d9; border: 2px solid #363b42; padding: 14px 0; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; text-align: center; }
-        .btn:active { background-color: #1f6feb; color: #fff; }
-        .btn-soft { background-color: #238636; border-color: #2ea043; color: #fff; }
-        .btn-dir { background-color: #1f6feb; border-color: #388bfd; color: #fff; }
-        .btn-input { grid-column: span 3; background-color: #d97706; border-color: #f59e0b; color: #fff; font-size: 16px; margin-bottom: 5px; }
+  
 
-        #status-msg { position: absolute; color: #f59e0b; font-size: 16px; font-weight: bold; }
-    </style>
+  <!-- Tailwind CSS & FontAwesome -->
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  
+
+  <!-- Firebase SDKs (Compat Version) -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+  <script>
+
+    var firebaseConfig = {
+
+      apiKey: "AIzaSyDtx-lKCNtmPNYuVney1EnI8kFMp0dnwHI",
+
+      authDomain: "chatweb-de495.firebaseapp.com",
+
+      databaseURL: "https://chatweb-de495-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+      projectId: "chatweb-de495",
+
+      storageBucket: "chatweb-de495.firebasestorage.app",
+
+      messagingSenderId: "95380970296",
+
+      appId: "1:95380970296:web:12512890c057822d89bfcd",
+
+      measurementId: "G-7P6F0N214S"
+
+    };
+
+    if (!firebase.apps.length) {
+
+      firebase.initializeApp(firebaseConfig);
+
+    }
+
+    
+
+    var db = firebase.database();
+
+    try {
+
+      firebase.analytics();
+
+    } catch(e) { console.warn("Analytics not supported in this environment"); }
+
+    window.db = db;
+
+    // Helper bọc API Firebase chuẩn xác tương thích cả v9 Modular & Compat
+
+    window.dbRefs = { 
+
+      ref: function(d, path) { 
+
+        if (typeof d === 'string') { path = d; d = db; }
+
+        return (d || db).ref(path); 
+
+      },
+
+      set: function(r, val) { return r.set(val); },
+
+      get: function(r) { 
+
+        if (!r) return Promise.reject(new Error("Reference is null"));
+
+        return (typeof r.get === 'function') ? r.get() : r.once('value'); 
+
+      },
+
+      remove: function(r) { return r.remove(); },
+
+      update: function(r, val) { return r.update(val); },
+
+      onValue: function(r, cb, errCb) { return r.on('value', cb, errCb); },
+
+      push: function(r, val) { 
+
+        return val !== undefined ? r.push(val) : r.push(); 
+
+      },
+
+      serverTimestamp: function() { return firebase.database.ServerValue.TIMESTAMP; },
+
+      query: function(r) { 
+
+        var q = r;
+
+        for (var i = 1; i < arguments.length; i++) {
+
+          var constraint = arguments[i];
+
+          if (typeof constraint === 'function') {
+
+            q = constraint(q);
+
+          }
+
+        }
+
+        return q; 
+
+      },
+
+      limitToLast: function(arg1, arg2) { 
+
+        // Hỗ trợ cả limitToLast(100) dạng helper lẫn ref.limitToLast(100)
+
+        if (typeof arg1 === 'number') {
+
+          return function(queryRef) {
+
+            return queryRef.limitToLast(arg1);
+
+          };
+
+        }
+
+        if (arg1 && typeof arg1.limitToLast === 'function') {
+
+          return arg1.limitToLast(arg2);
+
+        }
+
+        return arg1;
+
+      },
+
+      onDisconnect: function(r) { return r.onDisconnect(); }
+
+    };
+
+  </script>
+
+  <style>
+
+    .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+
+    .custom-scroll::-webkit-scrollbar-track { background: #090d16; }
+
+    .custom-scroll::-webkit-scrollbar-thumb { background: #1f293d; border-radius: 4px; }
+
+    
+
+    #chat-input, #private-chat-input {
+
+      resize: none;
+
+      max-height: 100px;
+
+    }
+
+    @keyframes fadeInScale {
+
+      0% { opacity: 0; transform: scale(0.95); }
+
+      100% { opacity: 1; transform: scale(1); }
+
+    }
+
+    .animate-modal { animation: fadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    @keyframes discSpin {
+
+      0% { transform: rotate(0deg); }
+
+      100% { transform: rotate(360deg); }
+
+    }
+
+    .animate-disc-spin { animation: discSpin 4s linear infinite; }
+
+    .music-carousel-item {
+
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    }
+
+  </style>
+
 </head>
-<body>
 
-    <div id="game-section">
-        <div id="status-msg">Đang khởi tạo game...</div>
-        <div id="emulator-container"></div>
-    </div>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased h-screen flex flex-col justify-between overflow-hidden select-none text-xs relative">
 
-    <div id="controls-section">
-        <div class="keypad-grid">
-            <button class="btn btn-input" onclick="promptInput()">⌨ Nhập TK / MK (Gõ chữ)</button>
+  <!-- CHỮ KÝ TÁC GIẢ -->
 
-            <button class="btn btn-soft" onclick="sendKey(-6)">L-Soft</button>
-            <button class="btn btn-dir" onclick="sendKey(-1)">▲</button>
-            <button class="btn btn-soft" onclick="sendKey(-7)">R-Soft</button>
+  <div class="fixed bottom-1 right-2 z-40 bg-gray-900/80 border border-purple-500/30 px-2 py-0.5 rounded-md backdrop-blur-sm pointer-events-none shadow-md">
 
-            <button class="btn btn-dir" onclick="sendKey(-3)">◄</button>
-            <button class="btn btn-dir" onclick="sendKey(-5)">OK</button>
-            <button class="btn btn-dir" onclick="sendKey(-4)">►</button>
+    <span class="text-[9px] font-bold text-purple-300 tracking-wider">Tác giả: Mờ Tê</span>
 
-            <button class="btn" onclick="sendKey(49)">1</button>
-            <button class="btn btn-dir" onclick="sendKey(-2)">▼</button>
-            <button class="btn" onclick="sendKey(51)">3</button>
+  </div>
 
-            <button class="btn" onclick="sendKey(52)">4</button>
-            <button class="btn" onclick="sendKey(53)">5</button>
-            <button class="btn" onclick="sendKey(54)">6</button>
+  <!-- AUDIO GLOBAL & SOUND EFFECTS -->
 
-            <button class="btn" onclick="sendKey(55)">7</button>
-            <button class="btn" onclick="sendKey(56)">8</button>
-            <button class="btn" onclick="sendKey(57)">9</button>
+  <audio id="global-auto-audio" class="hidden"></audio>
 
-            <button class="btn" onclick="sendKey(42)">*</button>
-            <button class="btn" onclick="sendKey(48)">0</button>
-            <button class="btn" onclick="sendKey(35)">#</button>
-        </div>
-    </div>
+  <!-- Nút bóng nổi nhạc (Floating Music Ball) -->
 
-    <script>
-        window.addEventListener('load', function() {
-            var status = document.getElementById('status-msg');
-            
-            // Tải file game.jar nội bộ
-            fetch('./game.jar')
-                .then(res => {
-                    if(!res.ok) throw new Error("Không thấy file game.jar");
-                    return res.arrayBuffer();
-                })
-                .then(buffer => {
-                    status.style.display = 'none';
-                    // Khởi chạy bộ giả lập J2ME
-                    if (window.MEEP) {
-                        MEEP.start({
-                            container: document.getElementById('emulator-container'),
-                            jarBuffer: buffer
-                        });
-                    }
-                })
-                .catch(err => {
-                    status.innerText = "Lỗi: Không tìm thấy tệp game.jar trong Repository!";
-                    status.style.color = "#ef4444";
-                });
-        });
+  <div id="floating-music-ball" class="fixed bottom-12 right-4 z-50 flex items-center justify-center cursor-move touch-none">
 
-        function sendKey(code) {
-            var eDown = new KeyboardEvent('keydown', { keyCode: code, which: code, bubbles: true });
-            var eUp = new KeyboardEvent('keyup', { keyCode: code, which: code, bubbles: true });
-            document.dispatchEvent(eDown);
-            setTimeout(() => document.dispatchEvent(eUp), 50);
-        }
+    <button type="button" onclick="toggleMusicPlaylistModal()" class="w-10 h-10 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-2xl border-2 border-purple-400 flex items-center justify-center transition-transform hover:scale-110 active:scale-95">
 
-        function promptInput() {
-            var text = prompt("Nhập Tài khoản / Mật khẩu:");
-            if (text) {
-                for (let i = 0; i < text.length; i++) {
-                    sendKey(text.charCodeAt(i));
-                }
-            }
-        }
-    </script>
+      <i id="music-ball-icon" class="fa-solid fa-music text-xs"></i>
+
+    </button>
+
+  </div>
+
+  <!-- MODAL DANH SÁCH NHẠC & TRÌNH PHÁT CAROUSEL -->
+
+  <div id="playlist-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-purple-500/40 w-full max-w-sm rounded-2xl p-4 text-center shadow-2xl space-y-3 relative animate-modal">
+
+      <button type="button" onclick="toggleMusicPlaylistModal()" class="absolute top-2.5 right-2.5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+
+      <h3 class="text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5">
+
+        <i class="fa-solid fa-compact-disc text-amber-400 animate-disc-spin"></i> 🎵 Trình Phát Nhạc Mờ Tê Chat
+
+      </h3>
+
+      
+
+      <div class="relative w-full overflow-hidden bg-gray-950 p-3 rounded-2xl border border-gray-800">
+
+        <div id="music-carousel-track" class="flex items-center justify-center gap-3 transition-all duration-300 min-h-[110px]">
+
+          <p class="text-[10px] text-gray-500 italic">Chưa có bài hát nào được Admin duyệt.</p>
+
+        </div>
+
+        <button type="button" onclick="prevCarouselSong()" class="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-900/90 hover:bg-purple-600 text-white rounded-full border border-gray-700 flex items-center justify-center text-[10px] shadow">
+
+          <i class="fa-solid fa-chevron-left"></i>
+
+        </button>
+
+        <button type="button" onclick="nextCarouselSong()" class="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-900/90 hover:bg-purple-600 text-white rounded-full border border-gray-700 flex items-center justify-center text-[10px] shadow">
+
+          <i class="fa-solid fa-chevron-right"></i>
+
+        </button>
+
+      </div>
+
+      <div id="player-controls-bar" class="bg-gray-950 p-2.5 rounded-xl border border-gray-800 space-y-2">
+
+        <div class="flex items-center justify-between">
+
+          <span id="now-playing-title" class="text-[10px] font-bold text-amber-400 truncate max-w-[200px]">🎵 Đang phát: Chưa chọn</span>
+
+          <span id="audio-time-display" class="text-[9px] font-mono text-gray-400">00:00 / 00:00</span>
+
+        </div>
+
+        <input type="range" id="audio-seek-slider" value="0" max="100" class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500" oninput="seekAudioPosition(this.value)">
+
+        <div class="flex items-center justify-center gap-3">
+
+          <button type="button" onclick="playNextRandomSong()" class="w-8 h-8 bg-gray-800 hover:bg-gray-700 text-purple-300 rounded-lg flex items-center justify-center text-xs" title="Phát ngẫu nhiên bài khác">
+
+            <i class="fa-solid fa-shuffle"></i>
+
+          </button>
+
+          <button type="button" onclick="toggleGlobalAudioPlay()" class="w-9 h-9 bg-purple-600 hover:bg-purple-500 text-white rounded-xl flex items-center justify-center text-sm shadow-lg">
+
+            <i id="playlist-play-icon" class="fa-solid fa-play"></i>
+
+          </button>
+
+          <button type="button" onclick="confirmPlayCarouselSong()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold rounded-lg shadow">
+
+            Chuyển Bài
+
+          </button>
+
+        </div>
+
+      </div>
+
+      <button type="button" onclick="openRequestSongModal()" class="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all active:scale-95">
+
+        <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Yêu Cầu Duyệt Nhạc
+
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL YÊU CẦU DUYỆT NHẠC -->
+
+  <div id="request-song-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-purple-500/40 w-full max-w-xs rounded-2xl p-4 shadow-2xl space-y-3 animate-modal">
+
+      <h3 class="text-xs font-bold text-purple-400 text-center">🎵 Yêu Cầu Duyệt Bài Hát</h3>
+
+      <div>
+
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn tệp âm thanh</label>
+
+        <input type="file" id="request-song-file" accept="audio/*,.mp3,.m4a,.ogg,.wav,.aac,.flac" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-purple-600 file:text-white cursor-pointer">
+
+      </div>
+
+      <div>
+
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Tên bài hát chính xác</label>
+
+        <input type="text" id="request-song-name" placeholder="Nhập tên bài hát..." class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+      </div>
+
+      <div class="flex gap-2 pt-1">
+
+        <button type="button" onclick="submitSongRequest()" class="flex-1 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow">Gửi Duyệt</button>
+
+        <button type="button" onclick="closeRequestSongModal()" class="py-1.5 px-3 bg-gray-800 text-gray-400 text-xs font-bold rounded-xl">Đóng</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL DUYỆT BÀI HÁT CHO ADMIN -->
+
+  <div id="approve-music-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-amber-500/40 w-full max-w-xs rounded-2xl p-4 text-center shadow-2xl space-y-3 animate-modal">
+
+      <h3 class="text-xs font-bold text-amber-400">✨ Duyệt Bài Hát Hệ Thống</h3>
+
+      <p class="text-[10px] text-gray-400">Đặt tên hiển thị cho bài hát này trong Trình phát nhạc:</p>
+
+      <input type="text" id="approve-song-title-input" placeholder="Nhập tên bài hát..." class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+
+      <div class="flex gap-2 pt-1">
+
+        <button type="button" onclick="confirmApproveMusic()" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow">Xác Nhận Duyệt</button>
+
+        <button type="button" onclick="closeApproveMusicModal()" class="py-1.5 px-3 bg-gray-800 text-gray-400 text-xs font-bold rounded-xl">Hủy</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL POPUP THÔNG BÁO CHUNG -->
+
+  <div id="app-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-purple-500/40 w-full max-w-xs rounded-2xl p-4 text-center shadow-2xl space-y-3 animate-modal">
+
+      <h3 id="app-modal-title" class="text-xs font-bold text-amber-400">Thông Báo</h3>
+
+      <p id="app-modal-desc" class="text-[11px] text-gray-300 whitespace-pre-wrap leading-relaxed"></p>
+
+      <button type="button" id="app-modal-confirm-btn" onclick="closeAppModal()" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow">Đóng</button>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL REPORT BÁO XẤU -->
+
+  <div id="report-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-rose-500/40 w-full max-w-xs rounded-2xl p-4 shadow-2xl space-y-3 animate-modal">
+
+      <h3 class="text-xs font-bold text-rose-400 text-center">🚨 Báo Cáo & Góp Ý Hệ Thống</h3>
+
+      <div>
+
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Loại báo cáo</label>
+
+        <select id="report-type-select" onchange="toggleReportFields()" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+          <option value="1">1. Báo Lỗi Hệ Thống</option>
+
+          <option value="2">2. Báo Xấu User</option>
+
+          <option value="3">3. Góp Ý Phát Triển</option>
+
+        </select>
+
+      </div>
+
+      <div id="report-target-user-box" class="hidden">
+
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Tên User bị báo xấu</label>
+
+        <input type="text" id="report-target-user-input" placeholder="Ví dụ: userA" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+      </div>
+
+      <div>
+
+        <label id="report-content-label" class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Nội dung báo lỗi</label>
+
+        <textarea id="report-content-input" rows="3" placeholder="Mô tả chi tiết..." class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white"></textarea>
+
+      </div>
+
+      <div class="flex gap-2 pt-1">
+
+        <button type="button" onclick="submitReportModal()" class="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow">Gửi Báo Cáo</button>
+
+        <button type="button" onclick="closeReportModal()" class="py-1.5 px-3 bg-gray-800 text-gray-400 text-xs font-bold rounded-xl">Hủy</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 1: AUTHENTICATION -->
+
+  <div id="auth-screen" class="flex-1 flex flex-col justify-center items-center px-4 py-6 overflow-y-auto">
+
+    <div class="w-full max-w-md bg-gray-900/95 border border-gray-800 rounded-2xl shadow-2xl p-6 backdrop-blur-md">
+
+      <div class="text-center mb-5">
+
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 mb-2 border border-purple-500/30 shadow-lg">
+
+          <i class="fa-solid fa-bolt text-xl"></i>
+
+        </div>
+
+        <h1 class="text-base font-bold text-white tracking-tight">Mờ Tê Chat Pro</h1>
+
+        <p class="text-[10px] text-gray-400 mt-0.5">Hệ thống Phân Quyền & Game Boss Hacker</p>
+
+      </div>
+
+      <div class="flex bg-gray-950 p-1 rounded-xl mb-4 border border-gray-800">
+
+        <button type="button" id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md transition-all">Đăng Nhập</button>
+
+        <button type="button" id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all">Đăng Ký</button>
+
+        <button type="button" id="tab-forgot-btn" onclick="switchAuthTab('forgot')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all">Quên MK</button>
+
+      </div>
+
+      <div id="auth-alert" class="hidden mb-4 p-2.5 rounded-xl text-xs font-medium border flex items-center gap-2">
+
+        <i id="auth-alert-icon" class="fa-solid text-sm"></i>
+
+        <span id="auth-alert-text" class="flex-1 leading-snug"></span>
+
+      </div>
+
+      <!-- FORM ĐĂNG NHẬP -->
+
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
+
+        <div>
+
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập</label>
+
+          <div class="relative">
+
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-user text-xs"></i></span>
+
+            <input type="text" id="login-username" required placeholder="Nhập tên đăng nhập" class="w-full pl-8 pr-3 py-2 bg-gray-950 border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 text-xs text-white placeholder-gray-600">
+
+          </div>
+
+        </div>
+
+        <div>
+
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Mật khẩu</label>
+
+          <div class="relative">
+
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-lock text-xs"></i></span>
+
+            <input type="password" id="login-password" required placeholder="Nhập mật khẩu" class="w-full pl-8 pr-3 py-2 bg-gray-950 border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 text-xs text-white placeholder-gray-600">
+
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+
+            <input type="checkbox" id="remember-me-checkbox" checked class="w-3.5 h-3.5 rounded bg-gray-950 border-gray-800 text-blue-600 focus:ring-0">
+
+            <span class="text-[11px] text-gray-300 font-medium">Ghi nhớ phiên đăng nhập</span>
+
+          </label>
+
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg transition-all mt-1">Đăng Nhập Ngay</button>
+
+      </form>
+
+      <!-- FORM ĐĂNG KÝ -->
+
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+
+        <div>
+
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập mới</label>
+
+          <input type="text" id="reg-username" required placeholder="Chữ cái a-z và số 0-9 (>=5 ký tự)" class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+
+        </div>
+
+        <div>
+
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Mật khẩu</label>
+
+          <input type="password" id="reg-password" required placeholder="Tối thiểu 8 ký tự" class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition-all mt-1">Đăng Ký Tài Khoản</button>
+
+      </form>
+
+      <!-- FORM QUÊN MẬT KHẨU -->
+
+      <div id="forgot-form-container" class="space-y-3 hidden">
+
+        <form onsubmit="handleRequestResetOTP(event)" class="space-y-2 pb-2 border-b border-gray-800">
+
+          <p class="text-[10px] text-amber-400 font-bold uppercase">BƯỚC 1: GỬI YÊU CẦU CẤP MÃ OTP</p>
+
+          <input type="text" id="forgot-username" required placeholder="Tên đăng nhập" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+          <input type="email" id="forgot-email" required placeholder="Email đã liên kết" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+          <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-xl transition-all">Gửi Yêu Cầu Cho Admin</button>
+
+        </form>
+
+        <form onsubmit="handleResetPasswordWithOTP(event)" class="space-y-2 pt-1">
+
+          <p class="text-[10px] text-emerald-400 font-bold uppercase">BƯỚC 2: ĐỔI MẬT KHẨU BẰNG OTP</p>
+
+          <input type="text" id="reset-username" required placeholder="Tên tài khoản" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+          <input type="text" id="reset-otp-code" maxlength="6" required placeholder="Mã OTP 6 số" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs font-mono text-center tracking-widest text-emerald-400">
+
+          <input type="password" id="reset-new-pass" required placeholder="Mật khẩu mới (>=8 ký tự)" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+
+          <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl transition-all">Xác Nhận Đổi MK</button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 2: MENU ĐIỀU HƯỚNG -->
+
+  <div id="menu-screen" class="hidden flex-1 flex flex-col justify-center items-center px-4 py-6">
+
+    <div class="w-full max-w-sm bg-gray-900 border border-gray-800/90 rounded-2xl shadow-2xl p-5 text-center space-y-4">
+
+      <div class="relative bg-gradient-to-b from-gray-950 to-gray-900 p-4 rounded-xl border border-gray-800">
+
+        <div class="relative inline-block mb-2">
+
+          <img id="menu-user-avatar" src="" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-purple-500/80 shadow-md mx-auto">
+
+          <span class="absolute bottom-0 right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-gray-900 rounded-full"></span>
+
+        </div>
+
+        <h2 class="text-xs font-bold text-white"><span id="menu-nickname-display" class="text-amber-400 font-extrabold text-sm block">Biệt Danh</span> (<span id="menu-user-display" class="text-blue-400">User</span>)</h2>
+
+        <div class="flex justify-center items-center gap-2 mt-1">
+
+          <span id="menu-role-badge" class="px-2 py-0.5 text-[9px] font-bold rounded bg-gray-800 text-gray-300 border border-gray-700">MEMBER</span>
+
+        </div>
+
+      </div>
+
+      <div class="space-y-2 text-left">
+
+        <button type="button" onclick="openChatScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3">
+
+          <div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center text-xs"><i class="fa-solid fa-comments"></i></div>
+
+          <div class="flex-1 min-w-0">
+
+            <h3 class="text-xs font-bold text-white group-hover:text-blue-400">Phòng Chat Chung</h3>
+
+            <p class="text-[9px] text-gray-400 truncate">Trò chuyện cộng đồng Mờ Tê Chat</p>
+
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+
+        </button>
+
+        <button type="button" onclick="openBossScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-rose-500/30 rounded-xl transition-all group flex items-center gap-3">
+
+          <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center text-xs"><i class="fa-solid fa-skull"></i></div>
+
+          <div class="flex-1 min-w-0">
+
+            <h3 class="text-xs font-bold text-rose-400">⚔️ Đại Chiến Admin (Săn Boss)</h3>
+
+            <p class="text-[9px] text-gray-400 truncate">Săn Boss, Cày Xu & Nâng Cấp Kỹ Năng</p>
+
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-[9px] text-rose-500"></i>
+
+        </button>
+
+        <button type="button" onclick="openFriendsScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3 relative">
+
+          <div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center text-xs"><i class="fa-solid fa-user-group"></i></div>
+
+          <div class="flex-1 min-w-0">
+
+            <h3 class="text-xs font-bold text-white group-hover:text-purple-400">Bạn Bè & Chat Riêng</h3>
+
+            <p class="text-[9px] text-gray-400 truncate">Danh sách bạn bè & tin nhắn 1-1</p>
+
+          </div>
+
+          <span id="friend-req-badge" class="hidden px-1.5 bg-rose-500 text-white font-bold text-[8px] rounded-full">0</span>
+
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+
+        </button>
+
+        <button type="button" onclick="openSelfProfileView()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3">
+
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs"><i class="fa-solid fa-circle-user"></i></div>
+
+          <div class="flex-1 min-w-0">
+
+            <h3 class="text-xs font-bold text-white group-hover:text-emerald-400">Hồ Sơ & Cài Đặt</h3>
+
+            <p class="text-[9px] text-gray-400 truncate">Ảnh bìa, Tiểu sử, Biệt danh & MK</p>
+
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+
+        </button>
+
+        <button type="button" id="menu-admin-btn" onclick="openAdminScreen()" class="hidden w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-amber-500/30 rounded-xl transition-all group flex items-center gap-3">
+
+          <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-xs"><i class="fa-solid fa-sliders"></i></div>
+
+          <div class="flex-1 min-w-0">
+
+            <h3 class="text-xs font-bold text-amber-400">Quản Lý System & File Hub</h3>
+
+            <p class="text-[9px] text-gray-400 truncate">Quản lý users, OTP, File Hub & Duyệt Nhạc</p>
+
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-[9px] text-amber-500"></i>
+
+        </button>
+
+      </div>
+
+      <button type="button" onclick="handleLogout()" class="mt-2 w-full py-2 bg-gray-950 hover:bg-rose-950/50 text-gray-400 text-xs font-semibold rounded-xl border border-gray-800 flex items-center justify-center gap-1.5">
+
+        <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Đăng Xuất
+
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 3: PHÒNG CHAT CHUNG -->
+
+  <div id="chat-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
+
+    <header class="bg-gray-900/90 border-b border-gray-800 px-3 py-2 flex items-center justify-between sticky top-0 z-10">
+
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+
+      </button>
+
+      <div class="flex items-center gap-1.5 bg-gray-950 px-2 py-0.5 border border-emerald-500/30 rounded-full">
+
+        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+
+        <span id="chat-online-count" class="text-[10px] font-bold text-emerald-400">1 Online</span>
+
+      </div>
+
+      <div class="flex items-center gap-1.5">
+
+        <span id="chat-header-user" class="text-xs font-semibold text-gray-300">User</span>
+
+        <span id="chat-role-badge" class="px-1.5 py-0.2 text-[8px] font-bold rounded">MEMBER</span>
+
+      </div>
+
+    </header>
+
+    <div id="chat-box" class="custom-scroll flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-950">
+
+      <div class="text-center my-1">
+
+        <span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;</span>
+
+      </div>
+
+    </div>
+
+    <footer class="p-2 bg-gray-900 border-t border-gray-800">
+
+      <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex items-end gap-1.5">
+
+        <button type="button" onclick="document.getElementById('chat-img-upload').click()" class="bg-gray-800 hover:bg-gray-700 text-purple-400 w-8 h-8 rounded-xl flex items-center justify-center border border-gray-700 flex-shrink-0">
+
+          <i class="fa-solid fa-photo-film text-xs"></i>
+
+        </button>
+
+        <input type="file" id="chat-img-upload" accept="image/*,video/*,.gif" class="hidden" onchange="handleImageUpload(event)">
+
+        <textarea id="chat-input" rows="1" maxlength="9999" placeholder="Nhập tin nhắn (/help để xem trợ giúp)..." 
+
+          class="flex-1 bg-gray-950 text-white text-[11px] px-2.5 py-1.5 rounded-xl border border-gray-800 focus:outline-none focus:border-blue-500 placeholder-gray-500 leading-normal"
+
+          onkeydown="handleChatKeyDown(event)" oninput="autoExpandTextarea(this)"></textarea>
+
+        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-xl flex items-center justify-center shadow flex-shrink-0">
+
+          <i class="fa-solid fa-paper-plane text-[9px]"></i>
+
+        </button>
+
+      </form>
+
+    </footer>
+
+  </div>
+
+  <!-- MÀN HÌNH 4: BẠN BÈ & CHAT RIÊNG -->
+
+  <div id="friends-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
+
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between">
+
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+
+      </button>
+
+      <span class="text-purple-400 font-bold text-xs">👥 Bạn Bè & Chat Riêng</span>
+
+      <div class="w-8"></div>
+
+    </header>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-3.5">
+
+      <div>
+
+        <h3 class="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+
+          <i class="fa-solid fa-clock-rotate-left"></i> Lời mời kết bạn đang chờ
+
+        </h3>
+
+        <div id="pending-requests-list" class="space-y-1">
+
+          <p class="text-xs text-gray-500 italic">Không có lời mời nào.</p>
+
+        </div>
+
+      </div>
+
+      <div>
+
+        <h3 class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+
+          <i class="fa-solid fa-user-group"></i> Danh sách bạn bè (Bấm vào để nhắn tin 1-1)
+
+        </h3>
+
+        <div id="friends-list" class="space-y-1.5">
+
+          <p class="text-xs text-gray-500 italic">Chưa có bạn bè nào.</p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 5: CHAT RIÊNG TƯ 1-1 -->
+
+  <div id="private-chat-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
+
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between sticky top-0 z-10">
+
+      <button type="button" onclick="openFriendsScreen()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Bạn bè</span>
+
+      </button>
+
+      <div class="text-center flex items-center gap-2">
+
+        <img id="private-chat-target-avatar" src="" class="w-6 h-6 rounded-full object-cover border border-purple-500">
+
+        <div>
+
+          <h2 id="private-chat-target" class="text-xs font-bold text-purple-400">User</h2>
+
+          <span id="private-chat-target-sub" class="text-[8px] text-gray-400 block">@user</span>
+
+        </div>
+
+      </div>
+
+      <button type="button" onclick="openViewUserProfile(activePrivateFriend)" class="px-2 py-1 bg-purple-950 border border-purple-500/40 text-purple-300 rounded-lg text-[10px] font-bold"><i class="fa-solid fa-id-card"></i> Hồ Sơ</button>
+
+    </header>
+
+    <div id="private-chat-box" class="custom-scroll flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-950"></div>
+
+    <footer class="p-2 bg-gray-900 border-t border-gray-800">
+
+      <form onsubmit="handleSendPrivateMessage(event)" class="flex items-center gap-1.5">
+
+        <input type="text" id="private-chat-input" placeholder="Nhập tin nhắn riêng tư..." autocomplete="off"
+
+          class="flex-1 bg-gray-950 text-white text-[11px] px-2.5 py-1.5 rounded-xl border border-gray-800 focus:outline-none focus:border-purple-500 placeholder-gray-500">
+
+        <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white w-7 h-7 rounded-xl flex items-center justify-center shadow flex-shrink-0">
+
+          <i class="fa-solid fa-paper-plane text-[9px]"></i>
+
+        </button>
+
+      </form>
+
+    </footer>
+
+  </div>
+
+  <!-- MÀN HÌNH 6: TRANG HỒ SƠ ĐỘC LẬP -->
+
+  <div id="profile-screen" class="hidden flex-1 flex flex-col h-screen max-w-md mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl overflow-y-auto custom-scroll">
+
+    <header class="bg-gray-900/90 border-b border-gray-800 px-3 py-2 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
+
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Quay Lại</span>
+
+      </button>
+
+      <span class="text-amber-400 font-bold text-xs">👤 Trang Hồ Sơ Cá Nhân</span>
+
+      <div id="profile-action-menu-btn" class="relative">
+
+        <button type="button" onclick="toggleProfileDropdownMenu()" class="w-7 h-7 bg-gray-800 text-gray-300 rounded-lg flex items-center justify-center border border-gray-700">
+
+          <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+
+        </button>
+
+        <div id="profile-dropdown-menu" class="hidden absolute right-0 top-8 w-36 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-1 z-50 space-y-1">
+
+          <button type="button" onclick="handleUnfriendAction()" id="profile-unfriend-btn" class="w-full text-left px-2 py-1.5 text-[10px] text-rose-400 hover:bg-rose-950/50 rounded-lg flex items-center gap-1.5"><i class="fa-solid fa-user-xmark"></i> Hủy Kết Bạn</button>
+
+          <button type="button" onclick="handleReportProfileUser()" class="w-full text-left px-2 py-1.5 text-[10px] text-amber-400 hover:bg-amber-950/50 rounded-lg flex items-center gap-1.5"><i class="fa-solid fa-flag"></i> Báo Xấu User</button>
+
+        </div>
+
+      </div>
+
+    </header>
+
+    <div class="flex-1 pb-6 space-y-3">
+
+      <div class="relative w-full">
+
+        <div class="w-full h-36 bg-gradient-to-r from-purple-900 via-indigo-950 to-gray-900 relative overflow-hidden border-b border-gray-800">
+
+          <img id="view-profile-cover" src="https://placehold.co/600x200/1e1b4b/818cf8?text=Mo+Te+Chat+Cover" class="w-full h-full object-cover">
+
+          <button type="button" id="edit-cover-btn" onclick="document.getElementById('cover-file-input').click()" class="hidden absolute top-2 right-2 px-2 py-1 bg-black/60 hover:bg-black/80 text-white rounded-lg text-[9px] border border-white/20 backdrop-blur-sm">
+
+            <i class="fa-solid fa-image mr-1"></i> Đổi Bìa
+
+          </button>
+
+          <input type="file" id="cover-file-input" accept="image/*,.gif" class="hidden" onchange="handleCoverUpload(event)">
+
+        </div>
+
+        <div class="absolute -bottom-10 left-4 z-10">
+
+          <div class="relative group">
+
+            <img id="view-profile-avatar" src="" class="w-20 h-20 rounded-full object-cover border-4 border-gray-950 shadow-2xl">
+
+            <button type="button" id="edit-avatar-btn" onclick="document.getElementById('avatar-file-input').click()" class="hidden absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+
+              <i class="fa-solid fa-camera text-white text-base"></i>
+
+            </button>
+
+          </div>
+
+          <input type="file" id="avatar-file-input" accept="image/*,.gif" class="hidden" onchange="handleAvatarUpload(event)">
+
+        </div>
+
+      </div>
+
+      <div class="pt-10 px-4 space-y-3">
+
+        <div class="flex items-start justify-between">
+
+          <div>
+
+            <h2 id="view-profile-nickname" class="text-base font-extrabold text-amber-400">Biệt Danh</h2>
+
+            <span id="view-profile-username" class="text-[10px] text-gray-400 block">@user</span>
+
+            <span id="view-profile-role-badge" class="px-2 py-0.5 text-[8px] font-bold rounded inline-block mt-1">MEMBER</span>
+
+          </div>
+
+          <div id="view-profile-actions" class="flex items-center gap-1.5">
+
+            <button type="button" id="profile-friend-btn" onclick="handleProfileFriendClick()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1">
+
+              <i class="fa-solid fa-user-plus"></i> Kết Bạn
+
+            </button>
+
+            <button type="button" id="profile-chat-btn" onclick="handleProfileChatClick()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1">
+
+              <i class="fa-solid fa-message"></i> Nhắn Tin
+
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-1.5">
+
+          <div class="flex justify-between items-center border-b border-gray-800/80 pb-1">
+
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-quote-left mr-1"></i> Tiểu Sử</span>
+
+            <button type="button" id="edit-bio-btn" onclick="toggleEditBioInput()" class="hidden text-[9px] text-amber-400 hover:underline">Sửa Bio</button>
+
+          </div>
+
+          <p id="view-profile-bio" class="text-xs text-gray-200 italic leading-relaxed">Chưa có tiểu sử.</p>
+
+          <div id="edit-bio-box" class="hidden space-y-1.5 pt-1">
+
+            <textarea id="bio-input" rows="2" placeholder="Nhập tiểu sử của bạn..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white"></textarea>
+
+            <button type="button" onclick="saveUserProfileBio()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-lg">Lưu Tiểu Sử</button>
+
+          </div>
+
+        </div>
+
+        <div id="self-profile-settings" class="hidden space-y-3 pt-2">
+
+          <div class="bg-gray-900 border border-amber-500/30 rounded-xl p-3 space-y-2">
+
+            <h3 class="text-xs font-bold text-amber-400 border-b border-gray-800 pb-1.5">✨ Đặt Biệt Danh Multi-language</h3>
+
+            <input type="text" id="profile-nickname-input" placeholder="Nhập biệt danh..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+
+            <button type="button" onclick="handleSaveNickname()" class="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-lg shadow">Lưu Biệt Danh</button>
+
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-2">
+
+            <h3 class="text-xs font-bold text-white border-b border-gray-800 pb-1.5">📧 Email Khôi Phục</h3>
+
+            <input type="email" id="profile-email-input" placeholder="Nhập email..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+
+            <button type="button" onclick="handleLinkEmail()" class="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow">Lưu Email</button>
+
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-2">
+
+            <h3 class="text-xs font-bold text-white border-b border-gray-800 pb-1.5">🔑 Đổi Mật Khẩu</h3>
+
+            <input type="password" id="profile-new-pass" placeholder="Mật khẩu mới (>=8 ký tự)" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+
+            <button type="button" onclick="handleUserSelfChangePassword()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg shadow">Cập Nhật Mật Khẩu</button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL XEM NHANH HỒ SƠ -->
+
+  <div id="user-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+
+    <div class="bg-gray-900 border border-gray-800 w-full max-w-xs rounded-2xl p-5 text-center shadow-2xl relative space-y-3 animate-modal">
+
+      <button type="button" onclick="closeUserModal()" class="absolute top-2.5 right-2.5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+
+      <img id="modal-avatar" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-purple-500 object-cover shadow-lg">
+
+      <h3 id="modal-nickname" class="text-sm font-bold text-amber-400">Biệt Danh</h3>
+
+      <p id="modal-username" class="text-[10px] text-gray-400">@user</p>
+
+      <span id="modal-role" class="px-2 py-0.5 text-[9px] font-bold rounded inline-block">MEMBER</span>
+
+      <div class="pt-2 space-y-2">
+
+        <button type="button" onclick="openViewUserProfile(selectedTargetUser)" class="w-full py-2 bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl shadow"><i class="fa-solid fa-id-card mr-1"></i> Xem Hồ Sơ Trang Độc Lập</button>
+
+        <button type="button" onclick="sendFriendRequest()" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow"><i class="fa-solid fa-user-plus mr-1"></i> Kết Bạn</button>
+
+        <button type="button" onclick="closeUserModal()" class="w-full py-1.5 bg-gray-800 text-gray-400 text-xs font-semibold rounded-xl">Đóng</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 7: QUẢN LÝ HỆ THỐNG & FILE HUB -->
+
+  <div id="admin-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
+
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between shrink-0">
+
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+
+      </button>
+
+      <span class="text-amber-400 font-bold text-xs truncate max-w-[180px] sm:max-w-none">⚙️Quản Lý Hệ Thống & Trình Điều Hành</span>
+
+      <button type="button" onclick="loadAdminAllData()" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-amber-400 text-xs font-semibold rounded-lg border border-gray-700"><i class="fa-solid fa-rotate-right"></i></button>
+
+    </header>
+
+    <div class="flex bg-gray-950 p-1.5 border-b border-gray-800 gap-1 overflow-x-auto custom-scroll shrink-0">
+
+      <button type="button" id="admin-tab-btn-users" onclick="switchAdminTab('users')" class="flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-white bg-amber-600 shadow transition-all whitespace-nowrap flex items-center justify-center gap-1">
+
+        <i class="fa-solid fa-users"></i> 1. Quản Lý Tài Khoản
+
+      </button>
+
+      <button type="button" id="admin-tab-btn-files" onclick="switchAdminTab('files')" class="flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all whitespace-nowrap flex items-center justify-center gap-1">
+
+        <i class="fa-solid fa-folder-open"></i> 2. Kho File Web
+
+      </button>
+
+      <button type="button" id="admin-tab-btn-music" onclick="switchAdminTab('music')" class="flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all whitespace-nowrap flex items-center justify-center gap-1">
+
+        <i class="fa-solid fa-music"></i> 3. Kho Nhạc Của Web
+
+      </button>
+
+    </div>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-4">
+
+      <div id="admin-tab-content-users" class="space-y-4">
+
+        <div class="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-xl overflow-hidden">
+
+          <div class="p-2.5 bg-amber-950/40 border-b border-amber-500/30 flex justify-between items-center">
+
+            <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-key mr-1"></i> Yêu Cầu OTP Quên Mật Khẩu</span>
+
+            <span id="admin-reset-count" class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">0 yêu cầu</span>
+
+          </div>
+
+          <div class="custom-scroll overflow-x-auto max-w-full">
+
+            <table class="w-full text-left text-xs text-gray-300 min-w-[500px]">
+
+              <thead class="bg-gray-950 text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-800 whitespace-nowrap">
+
+                <tr>
+
+                  <th class="px-3 py-2">Tài Khoản</th>
+
+                  <th class="px-3 py-2">Email Yêu Cầu</th>
+
+                  <th class="px-3 py-2">Mã OTP</th>
+
+                  <th class="px-3 py-2 text-right">Duyệt OTP</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody id="admin-reset-table-body" class="divide-y divide-gray-800/60 whitespace-nowrap"></tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden">
+
+          <div class="p-2.5 bg-gray-950/60 border-b border-gray-800 flex justify-between items-center">
+
+            <span class="text-xs font-bold text-gray-300"><i class="fa-solid fa-users mr-1"></i> Danh Sách Tài Khoản</span>
+
+            <span id="admin-user-count" class="text-[9px] bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold">0 users</span>
+
+          </div>
+
+          <div class="custom-scroll overflow-x-auto max-w-full">
+
+            <table class="w-full text-left text-xs text-gray-300 min-w-[600px]">
+
+              <thead class="bg-gray-950 text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-800 whitespace-nowrap">
+
+                <tr>
+
+                  <th class="px-3 py-2">Tên / Biệt Danh</th>
+
+                  <th class="px-3 py-2">Email</th>
+
+                  <th class="px-3 py-2">Mật Khẩu</th>
+
+                  <th class="px-3 py-2">Chức Vụ</th>
+
+                  <th class="px-3 py-2 text-right">Thao Tác</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody id="admin-user-table-body" class="divide-y divide-gray-800/60 whitespace-nowrap"></tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div id="admin-tab-content-files" class="hidden space-y-4">
+
+        <div class="bg-gray-900 border border-blue-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
+
+          <h3 class="text-xs font-bold text-blue-400 border-b border-gray-800 pb-2 flex items-center gap-1.5">
+
+            <i class="fa-solid fa-folder-open"></i> Kho Lưu Trữ Tệp Tin Hệ Thống (Max 200MB)
+
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+
+            <div>
+
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">ID Tệp Tin</label>
+
+              <input type="text" id="admin-file-id" placeholder="Ví dụ: soundboss_1 hoặc nhac_1" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+
+            </div>
+
+            <div>
+
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Tệp (.mp3, .m4a, .wav, .ogg, Video, File)</label>
+
+              <input type="file" id="admin-file-input" accept="*/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+
+            </div>
+
+          </div>
+
+          <button type="button" onclick="handleAdminUploadFile()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all active:scale-95">
+
+            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải Tệp Lên Kho File Web
+
+          </button>
+
+          <div class="mt-2">
+
+            <span class="text-[9px] font-bold text-gray-400 uppercase block mb-1">Danh Sách Tệp Đã Tải Lên Kho:</span>
+
+            <div id="admin-files-list" class="space-y-1.5 max-h-60 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+
+              <p class="text-xs text-gray-500 italic p-1">Chưa có tệp nào.</p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div id="admin-tab-content-music" class="hidden space-y-4">
+
+        <div id="admin-approval-hub-block" class="bg-gray-900 border border-purple-500/40 rounded-2xl shadow-xl p-3.5 space-y-3">
+
+          <h3 class="text-xs font-bold text-purple-400 border-b border-gray-800 pb-2 flex items-center justify-between">
+
+            <span><i class="fa-solid fa-square-check"></i> Yêu Cầu Duyệt Nhạc Mới Gửi Lên</span>
+
+            <span id="approval-pending-count" class="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold">0 chờ duyệt</span>
+
+          </h3>
+
+          <div id="admin-approval-requests-list" class="space-y-2 max-h-48 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+
+            <p class="text-xs text-gray-500 italic p-2 text-center">Không có yêu cầu duyệt nào đang chờ.</p>
+
+          </div>
+
+        </div>
+
+        <div class="bg-gray-900 border border-emerald-500/40 rounded-2xl shadow-xl p-3.5 space-y-3">
+
+          <h3 class="text-xs font-bold text-emerald-400 border-b border-gray-800 pb-2 flex items-center justify-between">
+
+            <span><i class="fa-solid fa-compact-disc"></i> Danh Sách Nhạc Đã Duyệt Trong Trình Phát</span>
+
+            <span id="approved-music-count" class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">0 bài hát</span>
+
+          </h3>
+
+          <div id="admin-approved-music-list" class="space-y-1.5 max-h-60 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+
+            <p class="text-xs text-gray-500 italic p-2 text-center">Chưa có bài hát nào được duyệt.</p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MÀN HÌNH 8: ĐẠI CHIẾN BOSS HACKER -->
+
+  <div id="boss-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl">
+
+    <header class="bg-gray-900/90 border-b border-gray-800 px-3 py-2 flex items-center justify-between shrink-0">
+
+      <button type="button" onclick="backToMenu()" class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+
+        <i class="fa-solid fa-chevron-left text-[10px]"></i><span>Menu</span>
+
+      </button>
+
+      <span class="text-rose-400 font-bold text-xs">⚔️ Săn Boss Hacker - Mờ Tê Chat</span>
+
+      <div id="boss-admin-setup-btn" class="hidden">
+
+        <button type="button" onclick="showBossSetupModal()" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold rounded-lg"><i class="fa-solid fa-gear"></i> Set Boss</button>
+
+      </div>
+
+    </header>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-3">
+
+      <div class="bg-gray-900/90 border border-rose-500/30 rounded-2xl p-3 text-center relative overflow-hidden">
+
+        <div class="flex justify-between items-center mb-1">
+
+          <span id="boss-faction-tag" class="px-2 py-0.5 text-[9px] font-bold rounded-full">Phe: Chờ chọn</span>
+
+          <span class="text-[9px] text-gray-400">Rs hàng tuần vào Thứ 2</span>
+
+        </div>
+
+        <h2 id="boss-name" class="text-xs font-black text-rose-400 tracking-wide uppercase">BOSS HACKER</h2>
+
+        
+
+        <div class="w-full bg-gray-950 border border-gray-800 rounded-full h-3.5 my-1.5 overflow-hidden relative shadow-inner">
+
+          <div id="boss-hp-bar" class="bg-gradient-to-r from-rose-600 to-amber-500 h-full transition-all duration-300" style="width: 100%;"></div>
+
+          <span id="boss-hp-text" class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow">1,000,000 / 1,000,000 HP</span>
+
+        </div>
+
+        <div class="my-2 flex flex-col items-center justify-center">
+
+          <div id="boss-avatar-btn" onclick="registerBossClick()" class="w-20 h-20 rounded-full bg-rose-950/60 border-4 border-rose-500/50 flex items-center justify-center cursor-pointer shadow-2xl hover:scale-105 active:scale-95 transition-transform select-none">
+
+            <i class="fa-solid fa-user-ninja text-3xl text-rose-500"></i>
+
+          </div>
+
+          <div class="mt-2 flex items-center gap-3">
+
+            <div class="text-center"><span class="text-[8px] text-gray-400 uppercase block">Thời Gian</span><span id="game-timer" class="text-xs font-bold text-amber-400 font-mono">60s</span></div>
+
+            <button type="button" id="start-game-btn" onclick="startBossFight()" class="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs rounded-xl shadow transition-all active:scale-95">🚀 BẮT ĐẦU ĐÁNH</button>
+
+            <div class="text-center"><span class="text-[8px] text-gray-400 uppercase block">Cú Click Round</span><span id="round-clicks" class="text-xs font-bold text-emerald-400 font-mono">0</span></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="bg-gray-900 border border-amber-500/40 rounded-2xl p-3 space-y-2 shadow-xl">
+
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+
+          <div class="flex items-center gap-1.5">
+
+            <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-xs">
+
+              <i class="fa-solid fa-coins"></i>
+
+            </div>
+
+            <div>
+
+              <span class="text-[9px] text-gray-400 uppercase block">Số Dư Kho Tiền</span>
+
+              <span id="user-coin-balance" class="text-xs font-extrabold text-amber-400 font-mono">0 Xu</span>
+
+            </div>
+
+          </div>
+
+          <span class="text-[9px] text-emerald-400 font-semibold bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-500/30">Mỗi 1 Click = +1 Xu</span>
+
+        </div>
+
+        <h3 class="text-xs font-bold text-amber-300 pt-1"><i class="fa-solid fa-up-long text-amber-400"></i> SHOP NÂNG CẤP KỸ NĂNG BOSS (RIÊNG BIỆT)</h3>
+
+        
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+          <div class="bg-gray-950 p-2 rounded-xl border border-gray-800 flex flex-col justify-between space-y-1.5">
+
+            <div>
+
+              <div class="flex justify-between items-center">
+
+                <span class="text-[10px] font-bold text-rose-400">1. Tấn Công</span>
+
+                <span id="up-atk-level" class="text-[9px] font-mono text-amber-400">Lv.1/100</span>
+
+              </div>
+
+              <p class="text-[9px] text-gray-400 mt-0.5">Sát thương: <span id="up-atk-val" class="text-rose-300 font-bold">1 HP</span>/click</p>
+
+            </div>
+
+            <button type="button" onclick="buyUpgrade('atk')" id="up-atk-btn" class="w-full py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-lg shadow">
+
+              Nâng Cấp (<span id="up-atk-cost">100</span> Xu)
+
+            </button>
+
+          </div>
+
+          <div class="bg-gray-950 p-2 rounded-xl border border-gray-800 flex flex-col justify-between space-y-1.5">
+
+            <div>
+
+              <div class="flex justify-between items-center">
+
+                <span class="text-[10px] font-bold text-blue-400">2. Thời Gian Đánh</span>
+
+                <span id="up-time-level" class="text-[9px] font-mono text-amber-400">Lv.1/100</span>
+
+              </div>
+
+              <p class="text-[9px] text-gray-400 mt-0.5">Thời gian: <span id="up-time-val" class="text-blue-300 font-bold">40s</span></p>
+
+            </div>
+
+            <button type="button" onclick="buyUpgrade('time')" id="up-time-btn" class="w-full py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-lg shadow">
+
+              Nâng Cấp (<span id="up-time-cost">500</span> Xu)
+
+            </button>
+
+          </div>
+
+          <div class="bg-gray-950 p-2 rounded-xl border border-gray-800 flex flex-col justify-between space-y-1.5">
+
+            <div>
+
+              <div class="flex justify-between items-center">
+
+                <span class="text-[10px] font-bold text-purple-400">3. X(N) Tiền Mặc Định</span>
+
+                <span id="up-multi-level" class="text-[9px] font-mono text-amber-400">Lv.1/50</span>
+
+              </div>
+
+              <p class="text-[9px] text-gray-400 mt-0.5">Hệ số nhân: <span id="up-multi-val" class="text-purple-300 font-bold">1.0x</span></p>
+
+            </div>
+
+            <button type="button" onclick="buyUpgrade('multi')" id="up-multi-btn" class="w-full py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-lg shadow">
+
+              Nâng Cấp (<span id="up-multi-cost">1000</span> Xu)
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 space-y-2.5">
+
+        <h3 class="text-xs font-bold text-white tracking-wide border-b border-gray-800 pb-1 flex items-center gap-1.5">
+
+          <i class="fa-solid fa-trophy text-amber-400"></i> BẢNG XẾP HẠNG PHE & THÀNH VIÊN
+
+        </h3>
+
+        <div class="grid grid-cols-2 gap-2 text-center">
+
+          <div class="bg-rose-950/40 border border-rose-500/40 p-2 rounded-xl"><span class="text-[9px] font-bold text-rose-400 block">🔴 PHE ĐỎ (Admin Mờ Tê)</span><span id="score-red" class="text-xs font-black text-white mt-0.5 block">0 HP</span></div>
+
+          <div class="bg-blue-950/40 border border-blue-500/40 p-2 rounded-xl"><span class="text-[9px] font-bold text-blue-400 block">🔵 PHE XANH (Admin TNA)</span><span id="score-blue" class="text-xs font-black text-white mt-0.5 block">0 HP</span></div>
+
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+
+          <div class="flex justify-between items-center px-1">
+
+            <span class="text-[9px] font-bold text-gray-400 uppercase">Danh Sách Thành Viên Phe</span>
+
+            <div class="flex gap-1">
+
+              <button type="button" onclick="switchLeaderboardTab('red')" id="lb-tab-red" class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-600 text-white">Phe Đỏ</button>
+
+              <button type="button" onclick="switchLeaderboardTab('blue')" id="lb-tab-blue" class="px-2 py-0.5 text-[9px] font-bold rounded bg-gray-800 text-gray-400">Phe Xanh</button>
+
+            </div>
+
+          </div>
+
+          <div class="custom-scroll overflow-x-auto">
+
+            <table class="w-full text-left text-[10px] text-gray-300">
+
+              <thead class="bg-gray-950 text-gray-500 uppercase text-[8px] tracking-wider border-b border-gray-800">
+
+                <tr><th class="px-2 py-1">Thành Viên (Tên / Biệt Danh)</th><th class="px-2 py-1">Tổng Sát Thương</th><th class="px-2 py-1 text-right">Kỷ Lục Cao Nhất</th></tr>
+
+              </thead>
+
+              <tbody id="faction-members-leaderboard" class="divide-y divide-gray-800/50">
+
+                <tr><td colspan="3" class="px-2 py-2 text-center text-gray-500 italic">Đang tải xếp hạng...</td></tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SCRIPT LOGIC VÀ HỆ THỐNG -->
+
+  <script>
+
+    var ROLE_ADMIN = 0;
+
+    var ROLE_OP = 1;
+
+    var ROLE_MEMBER = 2;
+
+    var DEFAULT_ADMIN_USER = "admin";
+
+    var DEFAULT_ADMIN_PASS = "15112009@";
+
+    var currentUser = null;
+
+    var selectedTargetUser = null;
+
+    var viewingProfileUser = null;
+
+    var activePrivateFriend = null;
+
+    var approvedMusicList = [];
+
+    var playedMusicIds = [];
+
+    var activeMusicData = null;
+
+    var isAudioPlaying = false;
+
+    var carouselIndex = 0;
+
+    var selectedFileForApproval = null;
+
+    var approveSourceType = 'request';
+
+    var bossGameActive = false;
+
+    var bossTimerInterval = null;
+
+    var roundClickCount = 0;
+
+    var currentBossData = null;
+
+    var activeLeaderboardTab = 'red';
+
+    var bossHitAudioCache = null;
+
+    var userUpgrades = {
+
+      coins: 0,
+
+      atkLevel: 1,
+
+      timeLevel: 1,
+
+      multiLevel: 1
+
+    };
+
+    function escapeHTML(str) {
+
+      return String(str || '').replace(/[&<>'"]/g, function(tag) {
+
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag;
+
+      });
+
+    }
+
+    function parseTagsInText(text) {
+
+      var escaped = escapeHTML(text);
+
+      return escaped.replace(/@([a-zA-Z0-9_]+)/g, '<span class="bg-amber-500/20 text-amber-300 font-bold px-1 rounded border border-amber-500/30 cursor-pointer" onclick="openViewUserProfile(\'$1\')">@$1</span>');
+
+    }
+
+    function formatRelativeTime(timestamp) {
+
+      if (!timestamp) return 'Mới đây';
+
+      var now = Date.now();
+
+      var diffMs = now - timestamp;
+
+      var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 0) return 'Hôm nay';
+
+      if (diffDays < 30) return diffDays + ' ngày trước';
+
+      var diffMonths = Math.floor(diffDays / 30);
+
+      if (diffMonths < 12) return diffMonths + ' tháng trước';
+
+      var diffYears = Math.floor(diffMonths / 12);
+
+      return diffYears + ' năm trước';
+
+    }
+
+    function showAppModal(title, desc, confirmCallback) {
+
+      document.getElementById('app-modal-title').innerText = title;
+
+      document.getElementById('app-modal-desc').innerText = desc;
+
+      var confirmBtn = document.getElementById('app-modal-confirm-btn');
+
+      confirmBtn.onclick = function() {
+
+        closeAppModal();
+
+        if (confirmCallback) confirmCallback();
+
+      };
+
+      document.getElementById('app-modal').classList.remove('hidden');
+
+    }
+
+    function closeAppModal() { document.getElementById('app-modal').classList.add('hidden'); }
+
+    function generateDefaultAvatar(username) {
+
+      var initial = username ? username.charAt(0).toUpperCase() : 'U';
+
+      var colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#6366f1'];
+
+      var sum = 0;
+
+      for (var i = 0; i < username.length; i++) sum += username.charCodeAt(i);
+
+      var color = colors[sum % colors.length];
+
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">' +
+
+        '<rect width="100%" height="100%" fill="' + color + '"/>' +
+
+        '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="50" font-weight="bold" fill="#ffffff">' + initial + '</text>' +
+
+        '</svg>';
+
+      return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+
+    }
+
+    function switchAuthTab(tab) {
+
+      hideAuthAlert();
+
+      document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+
+      document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+
+      document.getElementById('forgot-form-container').classList.toggle('hidden', tab !== 'forgot');
+
+      document.getElementById('tab-login-btn').className = tab === 'login' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+
+      document.getElementById('tab-register-btn').className = tab === 'register' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-emerald-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+
+      document.getElementById('tab-forgot-btn').className = tab === 'forgot' ? 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-amber-600 shadow-md' : 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white';
+
+    }
+
+    function showAuthAlert(msg, isErr) {
+
+      var alertBox = document.getElementById('auth-alert');
+
+      var alertText = document.getElementById('auth-alert-text');
+
+      var alertIcon = document.getElementById('auth-alert-icon');
+
+      alertBox.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-400', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+
+      if (isErr !== false) {
+
+        alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
+
+        alertIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+
+      } else {
+
+        alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+
+        alertIcon.className = "fa-solid fa-circle-check text-emerald-400";
+
+      }
+
+      alertText.innerText = msg;
+
+    }
+
+    function hideAuthAlert() { document.getElementById('auth-alert').classList.add('hidden'); }
+
+    function ensureAdminExists() {
+
+      var adminRef = window.dbRefs.ref(window.db, 'users/' + DEFAULT_ADMIN_USER);
+
+      return window.dbRefs.get(adminRef).then(function(snap) {
+
+        if (!snap.exists()) {
+
+          return window.dbRefs.set(adminRef, {
+
+            username: DEFAULT_ADMIN_USER,
+
+            password: DEFAULT_ADMIN_PASS,
+
+            nickname: "Admin Mờ Tê",
+
+            role: ROLE_ADMIN,
+
+            isBanned: false,
+
+            createdAt: Date.now()
+
+          });
+
+        }
+
+      });
+
+    }
+
+    function checkActiveSession() {
+
+      var saved = localStorage.getItem('active_chat_user');
+
+      if (saved) {
+
+        try {
+
+          currentUser = JSON.parse(saved);
+
+          setupUserPresence();
+
+          showMenuScreen();
+
+        } catch(e) {
+
+          showAuthScreen();
+
+        }
+
+      } else {
+
+        showAuthScreen();
+
+      }
+
+    }
+
+    function setupUserPresence() {
+
+      if (!currentUser) return;
+
+      var userKey = currentUser.username.toLowerCase();
+
+      var connectedRef = window.dbRefs.ref(window.db, '.info/connected');
+
+      var userStatusRef = window.dbRefs.ref(window.db, 'users/' + userKey + '/onlineStatus');
+
+      window.dbRefs.onValue(connectedRef, function(snap) {
+
+        if (snap.val() === true) {
+
+          window.dbRefs.onDisconnect(userStatusRef).set(false);
+
+          window.dbRefs.set(userStatusRef, true);
+
+        }
+
+      });
+
+    }
+
+    function handleLogin(e) {
+
+      if (e) e.preventDefault();
+
+      hideAuthAlert();
+
+      var uInput = document.getElementById('login-username').value.trim();
+
+      var pInput = document.getElementById('login-password').value;
+
+      var rememberMe = document.getElementById('remember-me-checkbox').checked;
+
+      if (!uInput || !pInput) return showAuthAlert("Vui lòng nhập tên đăng nhập và mật khẩu!");
+
+      var userKey = uInput.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + userKey)).then(function(snap) {
+
+        if (snap.exists()) {
+
+          var userData = snap.val();
+
+          if (userData.isBanned) return showAuthAlert("Tài khoản của bạn đã bị khóa!");
+
+          if (userData.password === pInput) {
+
+            currentUser = {
+
+              username: userData.username,
+
+              nickname: userData.nickname || userData.username,
+
+              role: userData.role !== undefined ? userData.role : ROLE_MEMBER,
+
+              avatar: userData.avatar || generateDefaultAvatar(userData.username)
+
+            };
+
+            if (rememberMe) localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+
+            setupUserPresence();
+
+            showAppModal("Thành công", "Đăng nhập thành công!", showMenuScreen);
+
+            return;
+
+          }
+
+        }
+
+        showAuthAlert("Tên đăng nhập hoặc mật khẩu không chính xác!");
+
+      }).catch(function(err) {
+
+        showAuthAlert("Lỗi kết nối máy chủ: " + err.message);
+
+      });
+
+    }
+
+    function handleRegister(e) {
+
+      if (e) e.preventDefault();
+
+      hideAuthAlert();
+
+      var regU = document.getElementById('reg-username').value.trim();
+
+      var regP = document.getElementById('reg-password').value;
+
+      if (regU.length < 5 || !/^[a-zA-Z0-9_]+$/.test(regU)) return showAuthAlert("Tên đăng nhập tối thiểu 5 ký tự không dấu!");
+
+      if (regP.length < 8) return showAuthAlert("Mật khẩu tối thiểu 8 ký tự!");
+
+      var userKey = regU.toLowerCase();
+
+      var uRef = window.dbRefs.ref(window.db, 'users/' + userKey);
+
+      window.dbRefs.get(uRef).then(function(snap) {
+
+        if (snap.exists()) return showAuthAlert("Tên đăng nhập đã tồn tại!");
+
+        
+
+        var newUser = {
+
+          username: regU,
+
+          nickname: regU,
+
+          password: regP,
+
+          role: ROLE_MEMBER,
+
+          isBanned: false,
+
+          avatar: generateDefaultAvatar(regU),
+
+          createdAt: Date.now()
+
+        };
+
+        window.dbRefs.set(uRef, newUser).then(function() {
+
+          window.dbRefs.set(window.dbRefs.ref(window.db, 'friends/' + userKey + '/' + DEFAULT_ADMIN_USER), true);
+
+          window.dbRefs.set(window.dbRefs.ref(window.db, 'friends/' + DEFAULT_ADMIN_USER + '/' + userKey), true);
+
+          showAuthAlert("Đăng ký thành công! Hãy đăng nhập.", false);
+
+          switchAuthTab('login');
+
+          document.getElementById('login-username').value = regU;
+
+        });
+
+      });
+
+    }
+
+    function handleLogout() {
+
+      if (currentUser) {
+
+        window.dbRefs.set(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase() + '/onlineStatus'), false);
+
+      }
+
+      localStorage.removeItem('active_chat_user');
+
+      currentUser = null;
+
+      showAuthScreen();
+
+    }
+
+    function showAuthScreen() {
+
+      document.getElementById('auth-screen').classList.remove('hidden');
+
+      document.getElementById('menu-screen').classList.add('hidden');
+
+      document.getElementById('chat-screen').classList.add('hidden');
+
+      document.getElementById('friends-screen').classList.add('hidden');
+
+      document.getElementById('private-chat-screen').classList.add('hidden');
+
+      document.getElementById('profile-screen').classList.add('hidden');
+
+      document.getElementById('admin-screen').classList.add('hidden');
+
+      document.getElementById('boss-screen').classList.add('hidden');
+
+    }
+
+    function showMenuScreen() {
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('menu-screen').classList.remove('hidden');
+
+      if (currentUser) {
+
+        document.getElementById('menu-user-display').innerText = currentUser.username;
+
+        document.getElementById('menu-nickname-display').innerText = currentUser.nickname || currentUser.username;
+
+        document.getElementById('menu-user-avatar').src = currentUser.avatar || generateDefaultAvatar(currentUser.username);
+
+        var badge = document.getElementById('menu-role-badge');
+
+        badge.innerText = currentUser.role === ROLE_ADMIN ? 'ADMIN' : (currentUser.role === ROLE_OP ? 'OP' : 'MEMBER');
+
+        badge.className = "px-2 py-0.5 text-[9px] font-bold rounded " + 
+
+          (currentUser.role === ROLE_ADMIN ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (currentUser.role === ROLE_OP ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-800 text-gray-300'));
+
+        if (currentUser.role <= ROLE_OP) {
+
+          document.getElementById('menu-admin-btn').classList.remove('hidden');
+
+        } else {
+
+          document.getElementById('menu-admin-btn').classList.add('hidden');
+
+        }
+
+      }
+
+    }
+
+    function backToMenu() { showMenuScreen(); }
+
+    function openChatScreen() {
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('chat-screen').classList.remove('hidden');
+
+      if (currentUser) {
+
+        document.getElementById('chat-header-user').innerText = currentUser.nickname || currentUser.username;
+
+        var badge = document.getElementById('chat-role-badge');
+
+        if (badge) {
+
+          badge.innerText = currentUser.role === ROLE_ADMIN ? 'ADMIN' : (currentUser.role === ROLE_OP ? 'OP' : 'MEMBER');
+
+          badge.className = "px-1.5 py-0.5 text-[8px] font-bold rounded " + 
+
+            (currentUser.role === ROLE_ADMIN ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (currentUser.role === ROLE_OP ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-800 text-gray-300'));
+
+        }
+
+      }
+
+      initChatBoxListener();
+
+      initOnlineCountListener();
+
+    }
+
+    function initOnlineCountListener() {
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'users'), function(snap) {
+
+        if (!snap.exists()) return;
+
+        var online = 0;
+
+        var users = snap.val();
+
+        Object.keys(users).forEach(function(k) { if (users[k] && users[k].onlineStatus === true) online++; });
+
+        var tag = document.getElementById('chat-online-count');
+
+        if (tag) tag.innerText = Math.max(1, online) + ' Online';
+
+      });
+
+    }
+
+    function openFriendsScreen() {
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('friends-screen').classList.remove('hidden');
+
+      loadFriendsAndRequests();
+
+    }
+
+    function openAdminScreen() {
+
+      if (!currentUser || currentUser.role > ROLE_OP) return;
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('admin-screen').classList.remove('hidden');
+
+      loadAdminAllData();
+
+    }
+
+    function openBossScreen() {
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('boss-screen').classList.remove('hidden');
+
+      initBossGameScreen();
+
+    }
+
+    function openSelfProfileView() {
+
+      if (currentUser) openViewUserProfile(currentUser.username);
+
+    }
+
+    function openViewUserProfile(username) {
+
+      if (!username) return;
+
+      viewingProfileUser = username;
+
+      closeUserModal();
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('profile-screen').classList.remove('hidden');
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + username.toLowerCase())).then(function(snap) {
+
+        if (!snap.exists()) return;
+
+        var u = snap.val();
+
+        document.getElementById('view-profile-username').innerText = '@' + u.username;
+
+        document.getElementById('view-profile-nickname').innerText = u.nickname || u.username;
+
+        document.getElementById('view-profile-avatar').src = u.avatar || generateDefaultAvatar(u.username);
+
+        document.getElementById('view-profile-cover').src = u.cover || "https://placehold.co/600x200/1e1b4b/818cf8?text=Mo+Te+Chat+Cover";
+
+        document.getElementById('view-profile-bio').innerText = u.bio || "Chưa có tiểu sử.";
+
+        var isSelf = currentUser && currentUser.username.toLowerCase() === username.toLowerCase();
+
+        var roleBadge = document.getElementById('view-profile-role-badge');
+
+        roleBadge.innerText = u.role === ROLE_ADMIN ? 'ADMIN' : (u.role === ROLE_OP ? 'OP' : 'MEMBER');
+
+        roleBadge.className = "px-2 py-0.5 text-[8px] font-bold rounded inline-block mt-1 " + 
+
+          (u.role === ROLE_ADMIN ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (u.role === ROLE_OP ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-800 text-gray-300'));
+
+        if (isSelf) {
+
+          document.getElementById('edit-cover-btn').classList.remove('hidden');
+
+          document.getElementById('edit-avatar-btn').classList.remove('hidden');
+
+          document.getElementById('edit-bio-btn').classList.remove('hidden');
+
+          document.getElementById('self-profile-settings').classList.remove('hidden');
+
+          document.getElementById('view-profile-actions').classList.add('hidden');
+
+          document.getElementById('profile-action-menu-btn').classList.add('hidden');
+
+          document.getElementById('profile-nickname-input').value = u.nickname || '';
+
+          document.getElementById('profile-email-input').value = u.email || '';
+
+        } else {
+
+          document.getElementById('edit-cover-btn').classList.add('hidden');
+
+          document.getElementById('edit-avatar-btn').classList.add('hidden');
+
+          document.getElementById('edit-bio-btn').classList.add('hidden');
+
+          document.getElementById('self-profile-settings').classList.add('hidden');
+
+          document.getElementById('view-profile-actions').classList.remove('hidden');
+
+          document.getElementById('profile-action-menu-btn').classList.remove('hidden');
+
+          checkFriendshipStatusForProfile(username);
+
+        }
+
+      });
+
+    }
+
+    function checkFriendshipStatusForProfile(targetUser) {
+
+      if (!currentUser) return;
+
+      var myKey = currentUser.username.toLowerCase();
+
+      var targetKey = targetUser.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'friends/' + myKey + '/' + targetKey)).then(function(fSnap) {
+
+        var friendBtn = document.getElementById('profile-friend-btn');
+
+        if (fSnap.exists() && fSnap.val()) {
+
+          friendBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Đã Kết Bạn';
+
+          friendBtn.className = "px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow cursor-default";
+
+        } else {
+
+          friendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Kết Bạn';
+
+          friendBtn.className = "px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow";
+
+        }
+
+      });
+
+    }
+
+    function handleProfileFriendClick() {
+
+      if (viewingProfileUser) {
+
+        selectedTargetUser = viewingProfileUser;
+
+        sendFriendRequest();
+
+      }
+
+    }
+
+    function handleProfileChatClick() {
+
+      if (viewingProfileUser) openPrivateChat(viewingProfileUser);
+
+    }
+
+    function toggleProfileDropdownMenu() {
+
+      document.getElementById('profile-dropdown-menu').classList.toggle('hidden');
+
+    }
+
+    function handleUnfriendAction() {
+
+      if (!currentUser || !viewingProfileUser) return;
+
+      toggleProfileDropdownMenu();
+
+      if (confirm("Xác nhận hủy kết bạn với @" + viewingProfileUser + "?")) {
+
+        var myKey = currentUser.username.toLowerCase();
+
+        var targetKey = viewingProfileUser.toLowerCase();
+
+        window.dbRefs.remove(window.dbRefs.ref(window.db, 'friends/' + myKey + '/' + targetKey)).then(function() {
+
+          return window.dbRefs.remove(window.dbRefs.ref(window.db, 'friends/' + targetKey + '/' + myKey));
+
+        }).then(function() {
+
+          checkFriendshipStatusForProfile(viewingProfileUser);
+
+          showAppModal("Thành công", "Đã hủy kết bạn!");
+
+        });
+
+      }
+
+    }
+
+    function handleReportProfileUser() {
+
+      toggleProfileDropdownMenu();
+
+      openReportModal();
+
+      document.getElementById('report-type-select').value = '2';
+
+      toggleReportFields();
+
+      document.getElementById('report-target-user-input').value = viewingProfileUser || '';
+
+    }
+
+    function toggleEditBioInput() {
+
+      document.getElementById('edit-bio-box').classList.toggle('hidden');
+
+      document.getElementById('bio-input').value = document.getElementById('view-profile-bio').innerText;
+
+    }
+
+    function saveUserProfileBio() {
+
+      if (!currentUser) return;
+
+      var bioText = document.getElementById('bio-input').value.trim();
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { bio: bioText }).then(function() {
+
+        document.getElementById('view-profile-bio').innerText = bioText || "Chưa có tiểu sử.";
+
+        document.getElementById('edit-bio-box').classList.add('hidden');
+
+        showAppModal("Thành công", "Đã lưu tiểu sử mới!");
+
+      });
+
+    }
+
+    function handleCoverUpload(e) {
+
+      var file = e.target.files[0];
+
+      if (!file || !currentUser) return;
+
+      var reader = new FileReader();
+
+      reader.onload = function(evt) {
+
+        var base64 = evt.target.result;
+
+        document.getElementById('view-profile-cover').src = base64;
+
+        window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { cover: base64 }).then(function() {
+
+          showAppModal("Thành công", "Đã cập nhật ảnh bìa mới!");
+
+        });
+
+      };
+
+      reader.readAsDataURL(file);
+
+    }
+
+    function handleAvatarUpload(e) {
+
+      var file = e.target.files[0];
+
+      if (!file || !currentUser) return;
+
+      var reader = new FileReader();
+
+      reader.onload = function(evt) {
+
+        var base64 = evt.target.result;
+
+        currentUser.avatar = base64;
+
+        document.getElementById('view-profile-avatar').src = base64;
+
+        window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { avatar: base64 }).then(function() {
+
+          showAppModal("Thành công", "Đã cập nhật avatar mới!");
+
+        });
+
+      };
+
+      reader.readAsDataURL(file);
+
+    }
+
+    function handleSaveNickname() {
+
+      if (!currentUser) return;
+
+      var nick = document.getElementById('profile-nickname-input').value.trim();
+
+      if (!nick) return;
+
+      currentUser.nickname = nick;
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { nickname: nick }).then(function() {
+
+        document.getElementById('view-profile-nickname').innerText = nick;
+
+        showAppModal("Thành công", "Đã cập nhật biệt danh!");
+
+      });
+
+    }
+
+    function handleLinkEmail() {
+
+      if (!currentUser) return;
+
+      var emailVal = document.getElementById('profile-email-input').value.trim();
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { email: emailVal }).then(function() {
+
+        showAppModal("Thành công", "Đã lưu email khôi phục!");
+
+      });
+
+    }
+
+    function handleUserSelfChangePassword() {
+
+      if (!currentUser) return;
+
+      var pass = document.getElementById('profile-new-pass').value;
+
+      if (pass.length < 8) return showAppModal("Lỗi", "Mật khẩu tối thiểu 8 ký tự!");
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + currentUser.username.toLowerCase()), { password: pass }).then(function() {
+
+        showAppModal("Thành công", "Đã đổi mật khẩu thành công!");
+
+        document.getElementById('profile-new-pass').value = '';
+
+      });
+
+    }
+
+    function openReportModal() { document.getElementById('report-modal').classList.remove('hidden'); }
+
+    function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
+
+    function toggleReportFields() {
+
+      var type = document.getElementById('report-type-select').value;
+
+      var targetBox = document.getElementById('report-target-user-box');
+
+      var label = document.getElementById('report-content-label');
+
+      if (type === '2') {
+
+        targetBox.classList.remove('hidden');
+
+        label.innerText = "Nội dung báo xấu lý do";
+
+      } else if (type === '3') {
+
+        targetBox.classList.add('hidden');
+
+        label.innerText = "Nội dung góp ý";
+
+      } else {
+
+        targetBox.classList.add('hidden');
+
+        label.innerText = "Nội dung báo lỗi";
+
+      }
+
+    }
+
+    function submitReportModal() {
+
+      if (!currentUser) return;
+
+      var type = document.getElementById('report-type-select').value;
+
+      var targetUser = document.getElementById('report-target-user-input').value.trim();
+
+      var content = document.getElementById('report-content-input').value.trim();
+
+      if (!content) return showAppModal("Lỗi", "Vui lòng nhập nội dung!");
+
+      var reportTypeName = type === '1' ? "BÁO LỖI HỆ THỐNG" : (type === '2' ? "BÁO XẤU USER @" + targetUser : "GÓP Ý PHÁT TRIỂN");
+
+      var fullReportMsg = "🚨 [BÁO CÁO/GÓP Ý] " + reportTypeName + "\nNội dung: " + content;
+
+      var chatId = [currentUser.username.toLowerCase(), DEFAULT_ADMIN_USER].sort().join('_');
+
+      var newRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'private_chats/' + chatId));
+
+      window.dbRefs.set(newRef, {
+
+        sender: currentUser.username,
+
+        text: fullReportMsg,
+
+        timestamp: Date.now()
+
+      }).then(function() {
+
+        closeReportModal();
+
+        showAppModal("Thành công", "Đã gửi báo cáo đến Admin!");
+
+      });
+
+    }
+
+    function viewUserProfile(username) {
+
+      selectedTargetUser = username;
+
+      openViewUserProfile(username);
+
+    }
+
+    function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); }
+
+    function sendFriendRequest() {
+
+      if (!currentUser || !selectedTargetUser) return;
+
+      if (currentUser.username.toLowerCase() === selectedTargetUser.toLowerCase()) return showAppModal("Lỗi", "Không thể kết bạn với chính mình!");
+
+      var targetKey = selectedTargetUser.toLowerCase();
+
+      var reqRef = window.dbRefs.ref(window.db, 'friend_requests/' + targetKey + '/' + currentUser.username.toLowerCase());
+
+      
+
+      window.dbRefs.set(reqRef, {
+
+        from: currentUser.username,
+
+        timestamp: Date.now()
+
+      }).then(function() {
+
+        closeUserModal();
+
+        showAppModal("Thành công", "Đã gửi lời mời kết bạn đến @" + selectedTargetUser);
+
+      });
+
+    }
+
+    // --- XỬ LÝ PHÒNG CHAT CHUNG (ĐÃ SỬA LỖI TẢI VÀ GỬI) ---
+
+    function initChatBoxListener() {
+
+      var box = document.getElementById('chat-box');
+
+      if (!box) return;
+
+      
+
+      // Sửa lỗi: query & limitToLast hoạt động chuẩn 100%
+
+      var chatQuery = window.dbRefs.query(window.dbRefs.ref(window.db, 'messages'), window.dbRefs.limitToLast(100));
+
+      window.dbRefs.onValue(chatQuery, function(snap) {
+
+        box.innerHTML = '<div class="text-center my-1"><span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Mờ Tê Chat: Lệnh /help, /report, /online, /clear &lt;user|all&gt;</span></div>';
+
+        if (snap && snap.exists()) {
+
+          var data = snap.val();
+
+          Object.keys(data).forEach(function(k) {
+
+            var msg = data[k];
+
+            var isMe = currentUser && msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+
+            var mediaContent = '';
+
+            
+
+            if (msg.imageUrl) {
+
+              if (msg.imageUrl.startsWith('data:video/')) {
+
+                mediaContent = '<div class="my-1 border border-gray-700/80 rounded-xl overflow-hidden bg-black max-w-xs">' +
+
+                  '<video src="' + msg.imageUrl + '" controls preload="metadata" class="w-full max-h-52 object-contain"></video>' +
+
+                  '</div>';
+
+              } else {
+
+                mediaContent = '<div class="my-1 border border-gray-700/80 rounded-xl overflow-hidden bg-black max-w-xs">' +
+
+                  '<img src="' + msg.imageUrl + '" class="w-full max-h-52 object-cover cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(\'' + msg.imageUrl + '\', \'_blank\')">' +
+
+                  '</div>';
+
+              }
+
+            }
+
+            box.innerHTML += '<div class="flex gap-2 ' + (isMe ? 'flex-row-reverse' : 'flex-row') + ' items-start my-1.5">' +
+
+              '<img src="' + (msg.avatar || generateDefaultAvatar(msg.sender)) + '" class="w-7 h-7 rounded-full object-cover border border-gray-700 cursor-pointer flex-shrink-0" onclick="viewUserProfile(\'' + msg.sender + '\')">' +
+
+              '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + ' max-w-[85%]">' +
+
+              '<span class="text-[9px] text-gray-400 mb-0.5 cursor-pointer" onclick="openViewUserProfile(\'' + msg.sender + '\')">' + escapeHTML(msg.nickname || msg.sender) + '</span>' +
+
+              '<div class="px-2.5 py-1.5 rounded-xl text-[11px] leading-relaxed shadow ' + (isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none') + '">' +
+
+              mediaContent + parseTagsInText(msg.text || '') +
+
+              '</div></div></div>';
+
+          });
+
+          box.scrollTop = box.scrollHeight;
+
+        }
+
+      }, function(error) {
+
+        console.error("Lỗi tải tin nhắn Firebase:", error);
+
+        box.innerHTML = '<div class="text-center my-3 text-rose-400 text-xs font-bold">⚠️ Không thể tải tin nhắn: ' + escapeHTML(error.message) + '</div>';
+
+      });
+
+    }
+
+    function handleChatKeyDown(e) {
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+
+        e.preventDefault();
+
+        handleSendMessage(e);
+
+      }
+
+    }
+
+    function autoExpandTextarea(elem) {
+
+      elem.style.height = 'auto';
+
+      elem.style.height = Math.min(elem.scrollHeight, 100) + 'px';
+
+    }
+
+    function handleImageUpload(e) {
+
+      var file = e.target.files[0];
+
+      if (!file) return;
+
+      if (!currentUser) return showAppModal("Chưa Đăng Nhập", "Vui lòng đăng nhập để gửi ảnh/video!");
+
+      var reader = new FileReader();
+
+      reader.onload = function(evt) {
+
+        var base64 = evt.target.result;
+
+        var newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
+
+        window.dbRefs.set(newMsgRef, {
+
+          sender: currentUser.username,
+
+          nickname: currentUser.nickname || currentUser.username,
+
+          text: '',
+
+          imageUrl: base64,
+
+          avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
+
+          timestamp: Date.now()
+
+        }).catch(function(err) {
+
+          showAppModal("Lỗi gửi ảnh", "Không thể gửi ảnh: " + err.message);
+
+        });
+
+      };
+
+      reader.readAsDataURL(file);
+
+    }
+
+    function handleSendMessage(e) {
+
+      if (e && e.preventDefault) e.preventDefault();
+
+      var input = document.getElementById('chat-input');
+
+      var text = input.value.trim();
+
+      if (!text) return;
+
+      if (!currentUser) {
+
+        showAppModal("Chưa đăng nhập", "Vui lòng đăng nhập để bắt đầu trò chuyện!", showAuthScreen);
+
+        return;
+
+      }
+
+      input.value = '';
+
+      input.style.height = 'auto';
+
+      if (text.startsWith('/')) {
+
+        var parts = text.split(' ').filter(function(p) { return p !== ''; });
+
+        var cmd = parts[0].toLowerCase();
+
+        if (cmd === '/help') {
+
+          var helpList = [
+
+            "📌 NỘI QUY & CÁC LỆNH BẠN ĐƯỢC PHÉP SỬ DỤNG:",
+
+            "• /help : Xem danh sách trợ giúp lệnh",
+
+            "• /report : Báo lỗi, Báo xấu user hoặc Góp ý hệ thống",
+
+            "• /online : Xem danh sách người dùng đang trực tuyến 24/7"
+
+          ];
+
+          if (currentUser.role <= ROLE_OP) {
+
+            helpList.push("--- QUYỀN HẠN OP / ADMIN ---");
+
+            helpList.push("• /clear <user> : Xóa tin nhắn của user chỉ định");
+
+            helpList.push("• /clear all : Xóa toàn bộ phòng chat chung");
+
+          }
+
+          showAppModal("TRỢ GIÚP LỆNH MỜ TÊ CHAT", helpList.join("\n"));
+
+          return;
+
+        }
+
+        if (cmd === '/report') {
+
+          openReportModal();
+
+          return;
+
+        }
+
+        if (cmd === '/online') {
+
+          window.dbRefs.get(window.dbRefs.ref(window.db, 'users')).then(function(snap) {
+
+            if (snap.exists()) {
+
+              var users = snap.val();
+
+              var onlineList = [];
+
+              Object.keys(users).forEach(function(k) {
+
+                if (users[k].onlineStatus === true) {
+
+                  var nick = users[k].nickname || users[k].username;
+
+                  onlineList.push('• ' + nick + ' (@' + users[k].username + ')');
+
+                }
+
+              });
+
+              showAppModal('DANH SÁCH ONLINE (' + onlineList.length + ')', onlineList.length > 0 ? onlineList.join('\n') : "Không có ai online.");
+
+            }
+
+          });
+
+          return;
+
+        }
+
+        if (currentUser.role <= ROLE_OP) {
+
+          if (cmd === '/clear') {
+
+            var target = parts[1] ? parts[1].toLowerCase() : '';
+
+            if (!target) return showAppModal("Lỗi", "Cú pháp: /clear <tên_user> hoặc /clear all");
+
+            window.dbRefs.get(window.dbRefs.ref(window.db, 'messages')).then(function(msgSnap) {
+
+              if (msgSnap.exists()) {
+
+                var msgs = msgSnap.val();
+
+                Object.keys(msgs).forEach(function(mId) {
+
+                  if (target === 'all' || msgs[mId].sender.toLowerCase() === target) {
+
+                    window.dbRefs.remove(window.dbRefs.ref(window.db, 'messages/' + mId));
+
+                  }
+
+                });
+
+                showAppModal("Thành công", target === 'all' ? "Đã xóa toàn bộ tin nhắn!" : "Đã xóa tin nhắn của [" + target + "]!");
+
+              }
+
+            });
+
+            return;
+
+          }
+
+        }
+
+      }
+
+      var newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
+
+      window.dbRefs.set(newMsgRef, {
+
+        sender: currentUser.username,
+
+        nickname: currentUser.nickname || currentUser.username,
+
+        text: text,
+
+        avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
+
+        timestamp: Date.now()
+
+      }).catch(function(err) {
+
+        console.error("Lỗi gửi tin nhắn:", err);
+
+        showAppModal("Lỗi Gửi Tin", "Không thể gửi tin nhắn lên máy chủ: " + err.message);
+
+      });
+
+    }
+
+    // --- BẠN BÈ & CHAT RIÊNG ---
+
+    function loadFriendsAndRequests() {
+
+      if (!currentUser) return;
+
+      var myKey = currentUser.username.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'friend_requests/' + myKey)).then(function(reqSnap) {
+
+        var reqList = document.getElementById('pending-requests-list');
+
+        if (reqList) {
+
+          reqList.innerHTML = '';
+
+          if (reqSnap.exists()) {
+
+            var data = reqSnap.val();
+
+            Object.keys(data).forEach(function(fromUser) {
+
+              var reqData = data[fromUser];
+
+              var timeAgo = formatRelativeTime(reqData.timestamp);
+
+              reqList.innerHTML += '<div class="flex items-center justify-between bg-gray-900 p-2.5 rounded-xl border border-gray-800">' +
+
+                '<div><h4 class="text-xs font-bold text-amber-400">@' + escapeHTML(fromUser) + '</h4>' +
+
+                '<span class="text-[9px] text-gray-400 block">Gửi ' + timeAgo + '</span></div>' +
+
+                '<div class="flex gap-1.5">' +
+
+                '<button type="button" onclick="acceptFriend(\'' + fromUser + '\')" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg shadow">Đồng Ý</button>' +
+
+                '<button type="button" onclick="declineFriend(\'' + fromUser + '\')" class="px-2 py-1 bg-gray-800 text-gray-400 text-[10px] font-bold rounded-lg">Từ Chối</button>' +
+
+                '</div></div>';
+
+            });
+
+          } else {
+
+            reqList.innerHTML = '<p class="text-xs text-gray-500 italic">Không có lời mời nào.</p>';
+
+          }
+
+        }
+
+      });
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'friends/' + myKey)).then(function(friendSnap) {
+
+        var friendList = document.getElementById('friends-list');
+
+        if (!friendList) return;
+
+        friendList.innerHTML = '';
+
+        if (!friendSnap.exists()) {
+
+          friendList.innerHTML = '<p class="text-xs text-gray-500 italic">Chưa có bạn bè nào.</p>';
+
+          return;
+
+        }
+
+        var friendsData = friendSnap.val();
+
+        var fKeys = Object.keys(friendsData);
+
+        window.dbRefs.get(window.dbRefs.ref(window.db, 'users')).then(function(usersSnap) {
+
+          var allUsers = usersSnap.exists() ? usersSnap.val() : {};
+
+          fKeys.forEach(function(fUser) {
+
+            var uObj = allUsers[fUser] || {};
+
+            var nickname = uObj.nickname || uObj.username || fUser;
+
+            var avatar = uObj.avatar || generateDefaultAvatar(fUser);
+
+            var isOnline = uObj.onlineStatus === true;
+
+            var chatId = [myKey, fUser.toLowerCase()].sort().join('_');
+
+            
+
+            // Sửa lỗi query lấy tin nhắn cuối cùng
+
+            window.dbRefs.get(window.dbRefs.query(window.dbRefs.ref(window.db, 'private_chats/' + chatId), window.dbRefs.limitToLast(1))).then(function(lastMsgSnap) {
+
+              var lastMsgText = "Chưa có tin nhắn";
+
+              if (lastMsgSnap.exists()) {
+
+                var valObj = lastMsgSnap.val();
+
+                var keys = Object.keys(valObj);
+
+                var lVal = valObj[keys[0]];
+
+                if (lVal) {
+
+                  lastMsgText = (lVal.sender.toLowerCase() === myKey ? 'Bạn: ' : '') + lVal.text;
+
+                }
+
+              }
+
+              friendList.innerHTML += '<div onclick="openPrivateChat(\'' + fUser + '\')" class="flex items-center gap-2.5 bg-gray-900 hover:bg-gray-800/80 p-2.5 rounded-xl border border-gray-800 cursor-pointer transition-all">' +
+
+                '<div class="relative flex-shrink-0">' +
+
+                '<img src="' + avatar + '" class="w-9 h-9 rounded-full object-cover border border-purple-500/50">' +
+
+                '<span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-gray-900 ' + (isOnline ? 'bg-emerald-500' : 'bg-gray-500') + '"></span>' +
+
+                '</div>' +
+
+                '<div class="flex-1 min-w-0">' +
+
+                '<div class="flex justify-between items-center">' +
+
+                '<h4 class="text-xs font-bold text-amber-400 truncate">' + escapeHTML(nickname) + '</h4>' +
+
+                '<span class="text-[8px] text-gray-500">@' + escapeHTML(fUser) + '</span>' +
+
+                '</div>' +
+
+                '<p class="text-[10px] text-gray-400 truncate mt-0.5">' + escapeHTML(lastMsgText) + '</p>' +
+
+                '</div>' +
+
+                '<i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>' +
+
+                '</div>';
+
+            });
+
+          });
+
+        });
+
+      });
+
+    }
+
+    function acceptFriend(fromUser) {
+
+      if (!currentUser) return;
+
+      var myKey = currentUser.username.toLowerCase();
+
+      var fromKey = fromUser.toLowerCase();
+
+      window.dbRefs.set(window.dbRefs.ref(window.db, 'friends/' + myKey + '/' + fromKey), true).then(function() {
+
+        return window.dbRefs.set(window.dbRefs.ref(window.db, 'friends/' + fromKey + '/' + myKey), true);
+
+      }).then(function() {
+
+        return window.dbRefs.remove(window.dbRefs.ref(window.db, 'friend_requests/' + myKey + '/' + fromKey));
+
+      }).then(function() {
+
+        loadFriendsAndRequests();
+
+        showAppModal("Thành công", "Đã chấp nhận kết bạn!");
+
+      });
+
+    }
+
+    function declineFriend(fromUser) {
+
+      if (!currentUser) return;
+
+      var myKey = currentUser.username.toLowerCase();
+
+      window.dbRefs.remove(window.dbRefs.ref(window.db, 'friend_requests/' + myKey + '/' + fromUser.toLowerCase())).then(function() {
+
+        loadFriendsAndRequests();
+
+      });
+
+    }
+
+    function openPrivateChat(friendName) {
+
+      activePrivateFriend = friendName;
+
+      showAuthScreen();
+
+      document.getElementById('auth-screen').classList.add('hidden');
+
+      document.getElementById('private-chat-screen').classList.remove('hidden');
+
+      document.getElementById('private-chat-target').innerText = friendName;
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + friendName.toLowerCase())).then(function(uSnap) {
+
+        if (uSnap.exists()) {
+
+          var u = uSnap.val();
+
+          document.getElementById('private-chat-target').innerText = u.nickname || u.username;
+
+          document.getElementById('private-chat-target-sub').innerText = '@' + u.username;
+
+          document.getElementById('private-chat-target-avatar').src = u.avatar || generateDefaultAvatar(u.username);
+
+        }
+
+      });
+
+      var chatId = [currentUser.username.toLowerCase(), friendName.toLowerCase()].sort().join('_');
+
+      var pChatRef = window.dbRefs.ref(window.db, 'private_chats/' + chatId);
+
+      window.dbRefs.onValue(pChatRef, function(snap) {
+
+        var box = document.getElementById('private-chat-box');
+
+        if (!box) return;
+
+        box.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          Object.keys(data).forEach(function(k) {
+
+            var msg = data[k];
+
+            var isMe = msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+
+            box.innerHTML += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + ' mb-1.5">' +
+
+              '<div class="px-3 py-1.5 rounded-xl text-[11px] leading-relaxed shadow ' + (isMe ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none') + '">' +
+
+              parseTagsInText(msg.text) +
+
+              '</div></div>';
+
+          });
+
+          box.scrollTop = box.scrollHeight;
+
+        }
+
+      });
+
+    }
+
+    function handleSendPrivateMessage(e) {
+
+      if (e) e.preventDefault();
+
+      var input = document.getElementById('private-chat-input');
+
+      var text = input.value.trim();
+
+      if (!text || !activePrivateFriend) return;
+
+      if (!currentUser) return showAppModal("Lỗi", "Vui lòng đăng nhập lại!");
+
+      input.value = '';
+
+      var chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+
+      var newRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'private_chats/' + chatId));
+
+      window.dbRefs.set(newRef, {
+
+        sender: currentUser.username,
+
+        text: text,
+
+        timestamp: Date.now()
+
+      }).catch(function(err) {
+
+        showAppModal("Lỗi", "Không thể gửi tin: " + err.message);
+
+      });
+
+    }
+
+    // --- QUẢN LÝ ADMIN & FILE HUB ---
+
+    function switchAdminTab(tabName) {
+
+      document.getElementById('admin-tab-content-users').classList.toggle('hidden', tabName !== 'users');
+
+      document.getElementById('admin-tab-content-files').classList.toggle('hidden', tabName !== 'files');
+
+      document.getElementById('admin-tab-content-music').classList.toggle('hidden', tabName !== 'music');
+
+      document.getElementById('admin-tab-btn-users').className = tabName === 'users' ? 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-white bg-amber-600 shadow transition-all whitespace-nowrap flex items-center justify-center gap-1' : 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all whitespace-nowrap flex items-center justify-center gap-1';
+
+      document.getElementById('admin-tab-btn-files').className = tabName === 'files' ? 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-white bg-blue-600 shadow transition-all whitespace-nowrap flex items-center justify-center gap-1' : 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all whitespace-nowrap flex items-center justify-center gap-1';
+
+      document.getElementById('admin-tab-btn-music').className = tabName === 'music' ? 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-white bg-purple-600 shadow transition-all whitespace-nowrap flex items-center justify-center gap-1' : 'flex-1 py-1.5 px-2 text-[10px] sm:text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all whitespace-nowrap flex items-center justify-center gap-1';
+
+    }
+
+    function loadAdminAllData() {
+
+      loadAdminResetRequests();
+
+      loadAdminUserList();
+
+      loadAdminFilesList();
+
+      loadApprovalRequestsList();
+
+      loadApprovedMusicList();
+
+    }
+
+    function loadAdminResetRequests() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'reset_requests')).then(function(snap) {
+
+        var tbody = document.getElementById('admin-reset-table-body');
+
+        var count = document.getElementById('admin-reset-count');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          var keys = Object.keys(data);
+
+          count.innerText = keys.length + " yêu cầu";
+
+          keys.forEach(function(k) {
+
+            var item = data[k];
+
+            tbody.innerHTML += '<tr class="hover:bg-gray-800/40 border-b border-gray-800/60">' +
+
+              '<td class="px-3 py-2 font-bold text-amber-400">@' + escapeHTML(item.username) + '</td>' +
+
+              '<td class="px-3 py-2 text-gray-300">' + escapeHTML(item.email) + '</td>' +
+
+              '<td class="px-3 py-2 font-mono text-emerald-400 font-bold">' + (item.otp || 'Chưa cấp') + '</td>' +
+
+              '<td class="px-3 py-2 text-right"><button type="button" onclick="generateOTPForUser(\'' + k + '\')" class="px-2 py-1 bg-amber-600 text-white rounded font-bold text-[9px]">Tạo OTP</button></td>' +
+
+              '</tr>';
+
+          });
+
+        } else {
+
+          count.innerText = "0 yêu cầu";
+
+          tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-2 text-gray-500 italic text-center">Không có yêu cầu nào.</td></tr>';
+
+        }
+
+      });
+
+    }
+
+    function generateOTPForUser(userKey) {
+
+      var autoOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+      var customOTP = prompt('Nhập OTP 6 số cấp cho ' + userKey + ':', autoOTP);
+
+      if (!customOTP) return;
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'reset_requests/' + userKey), {
+
+        otp: customOTP
+
+      }).then(function() {
+
+        loadAdminResetRequests();
+
+        showAppModal("Thành công", "Đã cấp mã OTP [" + customOTP + "] cho user [" + userKey + "]!");
+
+      });
+
+    }
+
+    function loadAdminUserList() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users')).then(function(snap) {
+
+        var tbody = document.getElementById('admin-user-table-body');
+
+        var count = document.getElementById('admin-user-count');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          var keys = Object.keys(data);
+
+          count.innerText = keys.length + " users";
+
+          keys.forEach(function(k) {
+
+            var item = data[k];
+
+            var isBanned = !!item.isBanned;
+
+            var roleName = item.role === ROLE_ADMIN ? 'ADMIN' : (item.role === ROLE_OP ? 'OP' : 'MEMBER');
+
+            tbody.innerHTML += '<tr class="hover:bg-gray-800/40 border-b border-gray-800/60">' +
+
+              '<td class="px-3 py-2 font-bold text-amber-400">' + escapeHTML(item.nickname || item.username) + '<span class="text-gray-500 text-[8px] block">@' + escapeHTML(item.username) + '</span></td>' +
+
+              '<td class="px-3 py-2 text-gray-400">' + escapeHTML(item.email || 'Chưa có') + '</td>' +
+
+              '<td class="px-3 py-2 font-mono text-gray-300">' + escapeHTML(item.password) + '</td>' +
+
+              '<td class="px-3 py-2 font-bold text-purple-400">' + roleName + '</td>' +
+
+              '<td class="px-3 py-2 text-right flex gap-1 justify-end">' +
+
+              '<button type="button" onclick="toggleBanUser(\'' + k + '\', ' + isBanned + ')" class="px-2 py-0.5 ' + (isBanned ? 'bg-emerald-600' : 'bg-rose-600') + ' text-white rounded text-[9px] font-bold">' + (isBanned ? 'Mở Khóa' : 'Khóa') + '</button>' +
+
+              '<button type="button" onclick="deleteUserAccount(\'' + k + '\')" class="px-2 py-0.5 bg-gray-800 text-gray-300 hover:text-rose-400 rounded text-[9px] font-bold">Xóa</button>' +
+
+              '</td></tr>';
+
+          });
+
+        }
+
+      });
+
+    }
+
+    function toggleBanUser(userKey, isBanned) {
+
+      if (userKey === DEFAULT_ADMIN_USER) return showAppModal("Lỗi", "Không thể khóa tài khoản Admin mặc định!");
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey), { isBanned: !isBanned }).then(function() {
+
+        loadAdminUserList();
+
+      });
+
+    }
+
+    function deleteUserAccount(userKey) {
+
+      if (userKey === DEFAULT_ADMIN_USER) return showAppModal("Lỗi", "Không thể xóa tài khoản Admin mặc định!");
+
+      if (confirm("Xác nhận xóa tài khoản [" + userKey + "] vĩnh viễn?")) {
+
+        window.dbRefs.remove(window.dbRefs.ref(window.db, 'users/' + userKey)).then(function() {
+
+          loadAdminUserList();
+
+        });
+
+      }
+
+    }
+
+    function handleAdminUploadFile() {
+
+      var fileId = document.getElementById('admin-file-id').value.trim();
+
+      var fileInput = document.getElementById('admin-file-input');
+
+      var file = fileInput.files[0];
+
+      if (!fileId || !file) return showAppModal("Lỗi", "Vui lòng nhập ID Tệp và chọn tệp!");
+
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+
+        var base64 = e.target.result;
+
+        window.dbRefs.set(window.dbRefs.ref(window.db, 'file_hub/' + fileId), {
+
+          id: fileId,
+
+          fileName: file.name,
+
+          dataUrl: base64,
+
+          uploadedBy: currentUser ? currentUser.username : "Admin",
+
+          timestamp: Date.now()
+
+        }).then(function() {
+
+          document.getElementById('admin-file-id').value = '';
+
+          fileInput.value = '';
+
+          loadAdminFilesList();
+
+          showAppModal("Thành công", "Đã tải tệp lên Kho File Web!");
+
+        });
+
+      };
+
+      reader.readAsDataURL(file);
+
+    }
+
+    function loadAdminFilesList() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'file_hub')).then(function(snap) {
+
+        var list = document.getElementById('admin-files-list');
+
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          Object.keys(data).forEach(function(k) {
+
+            var item = data[k];
+
+            var isAudio = item.dataUrl && (item.dataUrl.startsWith('data:audio/') || item.fileName.match(/\.(mp3|m4a|wav|ogg|aac|flac)$/i));
+
+            
+
+            var approveBtnHtml = isAudio ? 
+
+              '<button type="button" onclick="openApproveFileHubMusicModal(\'' + k + '\')" class="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-[9px] rounded-lg mr-1"><i class="fa-solid fa-check mr-0.5"></i>Duyệt Nhạc</button>' : '';
+
+            list.innerHTML += '<div class="flex items-center justify-between p-2 bg-gray-900 rounded-xl border border-gray-800">' +
+
+              '<div><h4 class="text-xs font-bold text-blue-400">' + escapeHTML(item.id) + '</h4>' +
+
+              '<span class="text-[9px] text-gray-400 block">' + escapeHTML(item.fileName) + '</span></div>' +
+
+              '<div class="flex items-center gap-1">' +
+
+              approveBtnHtml +
+
+              '<button type="button" onclick="deleteAdminFile(\'' + k + '\')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[9px] rounded-lg">Xóa</button>' +
+
+              '</div></div>';
+
+          });
+
+        } else {
+
+          list.innerHTML = '<p class="text-xs text-gray-500 italic p-1">Chưa có tệp nào.</p>';
+
+        }
+
+      });
+
+    }
+
+    function deleteAdminFile(fileId) {
+
+      if (confirm("Xóa tệp [" + fileId + "] khỏi Kho File Web?")) {
+
+        window.dbRefs.remove(window.dbRefs.ref(window.db, 'file_hub/' + fileId)).then(function() {
+
+          loadAdminFilesList();
+
+        });
+
+      }
+
+    }
+
+    function openApproveMusicModal(reqId) {
+
+      approveSourceType = 'request';
+
+      selectedFileForApproval = reqId;
+
+      document.getElementById('approve-music-modal').classList.remove('hidden');
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'music_requests/' + reqId)).then(function(s) {
+
+        if (s.exists()) document.getElementById('approve-song-title-input').value = s.val().title || '';
+
+      });
+
+    }
+
+    function openApproveFileHubMusicModal(fileId) {
+
+      approveSourceType = 'file_hub';
+
+      selectedFileForApproval = fileId;
+
+      document.getElementById('approve-music-modal').classList.remove('hidden');
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'file_hub/' + fileId)).then(function(s) {
+
+        if (s.exists()) document.getElementById('approve-song-title-input').value = s.val().fileName ? s.val().fileName.replace(/\.[^/.]+$/, "") : s.val().id;
+
+      });
+
+    }
+
+    function closeApproveMusicModal() { document.getElementById('approve-music-modal').classList.add('hidden'); }
+
+    function confirmApproveMusic() {
+
+      if (!selectedFileForApproval) return;
+
+      var newTitle = document.getElementById('approve-song-title-input').value.trim();
+
+      if (!newTitle) return showAppModal("Lỗi", "Vui lòng nhập tên bài hát!");
+
+      var sourcePath = approveSourceType === 'request' ? 'music_requests/' + selectedFileForApproval : 'file_hub/' + selectedFileForApproval;
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, sourcePath)).then(function(snap) {
+
+        if (!snap.exists()) return;
+
+        var req = snap.val();
+
+        var approvedRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'approved_playlist'));
+
+        window.dbRefs.set(approvedRef, {
+
+          title: newTitle,
+
+          audioData: req.audioData || req.dataUrl,
+
+          approvedAt: Date.now()
+
+        }).then(function() {
+
+          if (approveSourceType === 'request') {
+
+            return window.dbRefs.remove(window.dbRefs.ref(window.db, sourcePath));
+
+          }
+
+        }).then(function() {
+
+          closeApproveMusicModal();
+
+          loadApprovalRequestsList();
+
+          loadApprovedMusicList();
+
+          showAppModal("Thành công", "Đã duyệt bài hát vào danh sách phát chính thức!");
+
+        });
+
+      });
+
+    }
+
+    function submitSongRequest() {
+
+      var file = document.getElementById('request-song-file').files[0];
+
+      var songName = document.getElementById('request-song-name').value.trim();
+
+      if (!file || !songName) return showAppModal("Lỗi", "Vui lòng chọn tệp và điền tên bài hát!");
+
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+
+        var base64 = e.target.result;
+
+        var reqRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'music_requests'));
+
+        window.dbRefs.set(reqRef, {
+
+          title: songName,
+
+          audioData: base64,
+
+          requestedBy: currentUser ? currentUser.username : "Khách",
+
+          timestamp: Date.now()
+
+        }).then(function() {
+
+          closeRequestSongModal();
+
+          showAppModal("Thành công", "Đã gửi yêu cầu duyệt bài hát đến Admin!");
+
+        });
+
+      };
+
+      reader.readAsDataURL(file);
+
+    }
+
+    function openRequestSongModal() { document.getElementById('request-song-modal').classList.remove('hidden'); }
+
+    function closeRequestSongModal() { document.getElementById('request-song-modal').classList.add('hidden'); }
+
+    function loadApprovalRequestsList() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'music_requests')).then(function(snap) {
+
+        var list = document.getElementById('admin-approval-requests-list');
+
+        var count = document.getElementById('approval-pending-count');
+
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          var keys = Object.keys(data);
+
+          count.innerText = keys.length + " chờ duyệt";
+
+          keys.forEach(function(k) {
+
+            var item = data[k];
+
+            list.innerHTML += '<div class="flex items-center justify-between p-2 bg-gray-900 rounded-xl border border-gray-800">' +
+
+              '<div><h4 class="text-xs font-bold text-purple-300">' + escapeHTML(item.title) + '</h4>' +
+
+              '<span class="text-[9px] text-gray-400 block">Người gửi: @' + escapeHTML(item.requestedBy) + '</span></div>' +
+
+              '<div class="flex gap-1.5">' +
+
+              '<button type="button" onclick="openApproveMusicModal(\'' + k + '\')" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[9px] rounded-lg">Duyệt Bài</button>' +
+
+              '<button type="button" onclick="rejectMusicRequest(\'' + k + '\')" class="px-2 py-1 bg-gray-800 text-gray-400 text-[9px] font-bold rounded-lg">Từ Chối</button>' +
+
+              '</div></div>';
+
+          });
+
+        } else {
+
+          count.innerText = "0 chờ duyệt";
+
+          list.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Không có yêu cầu duyệt nào đang chờ.</p>';
+
+        }
+
+      });
+
+    }
+
+    function rejectMusicRequest(reqId) {
+
+      window.dbRefs.remove(window.dbRefs.ref(window.db, 'music_requests/' + reqId)).then(function() {
+
+        loadApprovalRequestsList();
+
+      });
+
+    }
+
+    function loadApprovedMusicList() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'approved_playlist')).then(function(snap) {
+
+        var list = document.getElementById('admin-approved-music-list');
+
+        var count = document.getElementById('approved-music-count');
+
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          var keys = Object.keys(data);
+
+          count.innerText = keys.length + " bài hát";
+
+          keys.forEach(function(k) {
+
+            var item = data[k];
+
+            list.innerHTML += '<div class="flex items-center justify-between p-2 bg-gray-900 rounded-xl border border-gray-800">' +
+
+              '<div><h4 class="text-xs font-bold text-emerald-400">' + escapeHTML(item.title) + '</h4>' +
+
+              '<span class="text-[8px] text-gray-500">ID: ' + k + '</span></div>' +
+
+              '<button type="button" onclick="deleteApprovedMusic(\'' + k + '\')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[9px] rounded-lg">Xóa Nhạc</button>' +
+
+              '</div>';
+
+          });
+
+        } else {
+
+          count.innerText = "0 bài hát";
+
+          list.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Chưa có bài hát nào được duyệt.</p>';
+
+        }
+
+      });
+
+    }
+
+    function deleteApprovedMusic(musicId) {
+
+      if (confirm("Xác nhận xóa bài hát này khỏi hệ thống?")) {
+
+        window.dbRefs.remove(window.dbRefs.ref(window.db, 'approved_playlist/' + musicId)).then(function() {
+
+          loadApprovedMusicList();
+
+        });
+
+      }
+
+    }
+
+    // --- TRÌNH PHÁT NHẠC NỀN ---
+
+    function toggleMusicPlaylistModal() {
+
+      document.getElementById('playlist-modal').classList.toggle('hidden');
+
+      renderMusicCarousel();
+
+    }
+
+    function listenApprovedPlaylist() {
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'approved_playlist'), function(snap) {
+
+        approvedMusicList = [];
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          Object.keys(data).forEach(function(k) {
+
+            approvedMusicList.push({
+
+              id: k,
+
+              title: data[k].title,
+
+              audioData: data[k].audioData
+
+            });
+
+          });
+
+          if (!activeMusicData && approvedMusicList.length > 0) {
+
+            playNextRandomSong();
+
+          }
+
+        }
+
+        renderMusicCarousel();
+
+      });
+
+    }
+
+    function renderMusicCarousel() {
+
+      var track = document.getElementById('music-carousel-track');
+
+      if (!track) return;
+
+      track.innerHTML = '';
+
+      if (approvedMusicList.length === 0) {
+
+        track.innerHTML = '<p class="text-[10px] text-gray-500 italic">Chưa có bài hát nào được Admin duyệt.</p>';
+
+        return;
+
+      }
+
+      if (carouselIndex >= approvedMusicList.length) carouselIndex = 0;
+
+      if (carouselIndex < 0) carouselIndex = approvedMusicList.length - 1;
+
+      var total = approvedMusicList.length;
+
+      var prevIdx = (carouselIndex - 1 + total) % total;
+
+      var currIdx = carouselIndex;
+
+      var nextIdx = (carouselIndex + 1) % total;
+
+      var prevSong = approvedMusicList[prevIdx];
+
+      var currSong = approvedMusicList[currIdx];
+
+      var nextSong = approvedMusicList[nextIdx];
+
+      track.innerHTML = '<div onclick="prevCarouselSong()" class="music-carousel-item opacity-40 scale-75 cursor-pointer flex flex-col items-center -mr-4 transition-all duration-300">' +
+
+        '<div class="w-10 h-10 rounded-full bg-purple-900 border border-purple-500 flex items-center justify-center text-white text-xs shadow"><i class="fa-solid fa-music"></i></div>' +
+
+        '<span class="text-[8px] text-gray-400 mt-1 truncate max-w-[50px]">' + escapeHTML(prevSong.title) + '</span></div>' +
+
+        '<div class="music-carousel-item opacity-100 scale-105 z-10 flex flex-col items-center px-2 transition-all duration-300">' +
+
+        '<div class="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-amber-500 border-2 border-amber-400 flex items-center justify-center text-white text-base shadow-xl ' + (isAudioPlaying ? 'animate-disc-spin' : '') + '"><i class="fa-solid fa-compact-disc"></i></div>' +
+
+        '<span class="text-[10px] font-bold text-amber-300 mt-1.5 truncate max-w-[140px]">' + escapeHTML(currSong.title) + '</span></div>' +
+
+        '<div onclick="nextCarouselSong()" class="music-carousel-item opacity-40 scale-75 cursor-pointer flex flex-col items-center -ml-4 transition-all duration-300">' +
+
+        '<div class="w-10 h-10 rounded-full bg-purple-900 border border-purple-500 flex items-center justify-center text-white text-xs shadow"><i class="fa-solid fa-music"></i></div>' +
+
+        '<span class="text-[8px] text-gray-400 mt-1 truncate max-w-[50px]">' + escapeHTML(nextSong.title) + '</span></div>';
+
+    }
+
+    function prevCarouselSong() {
+
+      carouselIndex--;
+
+      renderMusicCarousel();
+
+    }
+
+    function nextCarouselSong() {
+
+      carouselIndex++;
+
+      renderMusicCarousel();
+
+    }
+
+    function confirmPlayCarouselSong() {
+
+      if (approvedMusicList.length === 0) return;
+
+      var selected = approvedMusicList[carouselIndex];
+
+      playSpecificSong(selected);
+
+    }
+
+    function playSpecificSong(song) {
+
+      if (!song) return;
+
+      activeMusicData = song;
+
+      var player = document.getElementById('global-auto-audio');
+
+      player.src = song.audioData;
+
+      player.play().then(function() {
+
+        isAudioPlaying = true;
+
+        updatePlayerUI();
+
+      }).catch(function(err) {
+
+        console.warn("Autoplay blocked:", err);
+
+      });
+
+    }
+
+    function playNextRandomSong() {
+
+      if (approvedMusicList.length === 0) return;
+
+      if (playedMusicIds.length >= approvedMusicList.length) {
+
+        playedMusicIds = [];
+
+      }
+
+      var unplayed = approvedMusicList.filter(function(s) {
+
+        return playedMusicIds.indexOf(s.id) === -1;
+
+      });
+
+      if (unplayed.length === 0) unplayed = approvedMusicList;
+
+      var randSong = unplayed[Math.floor(Math.random() * unplayed.length)];
+
+      playedMusicIds.push(randSong.id);
+
+      playSpecificSong(randSong);
+
+    }
+
+    function toggleGlobalAudioPlay() {
+
+      var player = document.getElementById('global-auto-audio');
+
+      if (isAudioPlaying) {
+
+        player.pause();
+
+        isAudioPlaying = false;
+
+      } else {
+
+        if (!activeMusicData && approvedMusicList.length > 0) playNextRandomSong();
+
+        else {
+
+          player.play();
+
+          isAudioPlaying = true;
+
+        }
+
+      }
+
+      updatePlayerUI();
+
+    }
+
+    function updatePlayerUI() {
+
+      var icon = document.getElementById('playlist-play-icon');
+
+      var ballIcon = document.getElementById('music-ball-icon');
+
+      var titleElem = document.getElementById('now-playing-title');
+
+      if (isAudioPlaying) {
+
+        if (icon) icon.className = "fa-solid fa-pause";
+
+        if (ballIcon) ballIcon.className = "fa-solid fa-compact-disc animate-disc-spin";
+
+      } else {
+
+        if (icon) icon.className = "fa-solid fa-play";
+
+        if (ballIcon) ballIcon.className = "fa-solid fa-music";
+
+      }
+
+      if (activeMusicData && titleElem) {
+
+        titleElem.innerText = "🎵 Đang phát: " + activeMusicData.title;
+
+      }
+
+      renderMusicCarousel();
+
+    }
+
+    function listenGlobalAudioEnded() {
+
+      var player = document.getElementById('global-auto-audio');
+
+      player.onended = function() {
+
+        playNextRandomSong();
+
+      };
+
+    }
+
+    function setupAudioProgressTracker() {
+
+      var player = document.getElementById('global-auto-audio');
+
+      var slider = document.getElementById('audio-seek-slider');
+
+      var display = document.getElementById('audio-time-display');
+
+      player.ontimeupdate = function() {
+
+        if (player.duration) {
+
+          var pct = (player.currentTime / player.duration) * 100;
+
+          if (slider) slider.value = pct;
+
+          var curM = Math.floor(player.currentTime / 60);
+
+          var curS = Math.floor(player.currentTime % 60);
+
+          var durM = Math.floor(player.duration / 60);
+
+          var durS = Math.floor(player.duration % 60);
+
+          var fmtCur = String(curM).padStart(2,'0') + ':' + String(curS).padStart(2,'0');
+
+          var fmtDur = String(durM).padStart(2,'0') + ':' + String(durS).padStart(2,'0');
+
+          if (display) display.innerText = fmtCur + ' / ' + fmtDur;
+
+        }
+
+      };
+
+    }
+
+    function seekAudioPosition(val) {
+
+      var player = document.getElementById('global-auto-audio');
+
+      if (player.duration) {
+
+        player.currentTime = (val / 100) * player.duration;
+
+      }
+
+    }
+
+    function initDraggableMusicBall() {
+
+      var ball = document.getElementById('floating-music-ball');
+
+      if (!ball) return;
+
+      var isDragging = false;
+
+      var offsetX, offsetY;
+
+      ball.addEventListener('touchstart', function(e) {
+
+        isDragging = true;
+
+        var touch = e.touches[0];
+
+        offsetX = touch.clientX - ball.offsetLeft;
+
+        offsetY = touch.clientY - ball.offsetTop;
+
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function(e) {
+
+        if (!isDragging) return;
+
+        var touch = e.touches[0];
+
+        ball.style.left = (touch.clientX - offsetX) + 'px';
+
+        ball.style.top = (touch.clientY - offsetY) + 'px';
+
+        ball.style.bottom = 'auto';
+
+        ball.style.right = 'auto';
+
+      }, { passive: true });
+
+      document.addEventListener('touchend', function() { isDragging = false; });
+
+    }
+
+    // --- GAME BOSS HACKER ---
+
+    function initBossGameScreen() {
+
+      listenBossGameRealtime();
+
+      loadUserBossUpgrades();
+
+      listenBossHitAudio();
+
+    }
+
+    function listenBossHitAudio() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'file_hub/soundboss_1')).then(function(snap) {
+
+        if (snap.exists()) {
+
+          bossHitAudioCache = snap.val().dataUrl;
+
+        }
+
+      });
+
+    }
+
+    function playBossHitSound() {
+
+      if (bossHitAudioCache) {
+
+        var audio = new Audio(bossHitAudioCache);
+
+        audio.currentTime = 0;
+
+        audio.play().catch(function(e) { console.warn(e); });
+
+      }
+
+    }
+
+    function checkWeeklyLazyReset(bossData) {
+
+      var lastResetTime = bossData ? bossData.lastResetTime || 0 : 0;
+
+      var now = new Date();
+
+      
+
+      var day = now.getDay();
+
+      var diffToMonday = (day === 0 ? -6 : 1) - day;
+
+      var thisMonday = new Date(now.setDate(now.getDate() + diffToMonday));
+
+      thisMonday.setHours(0,0,0,0);
+
+      var thisMondayMs = thisMonday.getTime();
+
+      if (lastResetTime < thisMondayMs) {
+
+        window.dbRefs.update(window.dbRefs.ref(window.db, 'boss_game'), {
+
+          currentHp: 1000000,
+
+          scoreRed: 0,
+
+          scoreBlue: 0,
+
+          lastResetTime: Date.now()
+
+        }).then(function() {
+
+          return window.dbRefs.remove(window.dbRefs.ref(window.db, 'boss_scores'));
+
+        });
+
+      }
+
+    }
+
+    function listenBossGameRealtime() {
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'boss_game'), function(snap) {
+
+        if (snap.exists()) {
+
+          currentBossData = snap.val();
+
+          checkWeeklyLazyReset(currentBossData);
+
+          document.getElementById('boss-name').innerText = currentBossData.name || "BOSS HACKER";
+
+          var curHp = Math.max(0, currentBossData.currentHp || 0);
+
+          var maxHp = currentBossData.maxHp || 1000000;
+
+          var pct = Math.max(0, Math.min(100, (curHp / maxHp) * 100));
+
+          document.getElementById('boss-hp-bar').style.width = pct + '%';
+
+          document.getElementById('boss-hp-text').innerText = curHp.toLocaleString() + ' / ' + maxHp.toLocaleString() + ' HP';
+
+          document.getElementById('score-red').innerText = (currentBossData.scoreRed || 0).toLocaleString() + ' HP';
+
+          document.getElementById('score-blue').innerText = (currentBossData.scoreBlue || 0).toLocaleString() + ' HP';
+
+          loadFactionLeaderboard();
+
+        }
+
+      });
+
+    }
+
+    function loadUserBossUpgrades() {
+
+      if (!currentUser) return;
+
+      var userKey = currentUser.username.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + userKey + '/bossUpgrades')).then(function(snap) {
+
+        if (snap.exists()) {
+
+          var u = snap.val();
+
+          userUpgrades.coins = u.coins || 0;
+
+          userUpgrades.atkLevel = u.atkLevel || 1;
+
+          userUpgrades.timeLevel = u.timeLevel || 1;
+
+          userUpgrades.multiLevel = u.multiLevel || 1;
+
+        }
+
+        updateShopUI();
+
+      });
+
+    }
+
+    function saveUserBossUpgrades() {
+
+      if (!currentUser) return;
+
+      var userKey = currentUser.username.toLowerCase();
+
+      window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey + '/bossUpgrades'), userUpgrades);
+
+    }
+
+    function updateShopUI() {
+
+      document.getElementById('user-coin-balance').innerText = userUpgrades.coins.toLocaleString() + ' Xu';
+
+      var atkDmg = 1 + Math.floor((userUpgrades.atkLevel - 1) * 9.99);
+
+      var atkCost = Math.floor(100 + (userUpgrades.atkLevel - 1) * 1009);
+
+      document.getElementById('up-atk-level').innerText = 'Lv.' + userUpgrades.atkLevel + '/100';
+
+      document.getElementById('up-atk-val').innerText = atkDmg.toLocaleString() + ' HP';
+
+      document.getElementById('up-atk-cost').innerText = atkCost.toLocaleString();
+
+      var timeSec = 40 + Math.floor((userUpgrades.timeLevel - 1) * 0.8);
+
+      var timeCost = Math.floor(500 + (userUpgrades.timeLevel - 1) * 146.4);
+
+      document.getElementById('up-time-level').innerText = 'Lv.' + userUpgrades.timeLevel + '/100';
+
+      document.getElementById('up-time-val').innerText = timeSec + 's';
+
+      document.getElementById('up-time-cost').innerText = timeCost.toLocaleString();
+
+      var multiVal = (1.0 + (userUpgrades.multiLevel - 1) * 0.102).toFixed(1);
+
+      var multiCost = Math.floor(1000 + (userUpgrades.multiLevel - 1) * 1816);
+
+      document.getElementById('up-multi-level').innerText = 'Lv.' + userUpgrades.multiLevel + '/50';
+
+      document.getElementById('up-multi-val').innerText = multiVal + 'x';
+
+      document.getElementById('up-multi-cost').innerText = multiCost.toLocaleString();
+
+    }
+
+    function buyUpgrade(type) {
+
+      if (type === 'atk') {
+
+        if (userUpgrades.atkLevel >= 100) return showAppModal("Lỗi", "Kỹ năng Tấn công đã đạt Level tối đa 100!");
+
+        var costAtk = Math.floor(100 + (userUpgrades.atkLevel - 1) * 1009);
+
+        if (userUpgrades.coins < costAtk) return showAppModal("Không đủ Xu", "Bạn cần " + costAtk.toLocaleString() + " Xu để nâng cấp!");
+
+        userUpgrades.coins -= costAtk;
+
+        userUpgrades.atkLevel++;
+
+      } else if (type === 'time') {
+
+        if (userUpgrades.timeLevel >= 100) return showAppModal("Lỗi", "Kỹ năng Thời gian đã đạt Level tối đa 100!");
+
+        var costTime = Math.floor(500 + (userUpgrades.timeLevel - 1) * 146.4);
+
+        if (userUpgrades.coins < costTime) return showAppModal("Không đủ Xu", "Bạn cần " + costTime.toLocaleString() + " Xu để nâng cấp!");
+
+        userUpgrades.coins -= costTime;
+
+        userUpgrades.timeLevel++;
+
+      } else if (type === 'multi') {
+
+        if (userUpgrades.multiLevel >= 50) return showAppModal("Lỗi", "Kỹ năng X(N) Tiền đã đạt Level tối đa 50!");
+
+        var costMulti = Math.floor(1000 + (userUpgrades.multiLevel - 1) * 1816);
+
+        if (userUpgrades.coins < costMulti) return showAppModal("Không đủ Xu", "Bạn cần " + costMulti.toLocaleString() + " Xu để nâng cấp!");
+
+        userUpgrades.coins -= costMulti;
+
+        userUpgrades.multiLevel++;
+
+      }
+
+      saveUserBossUpgrades();
+
+      updateShopUI();
+
+      showAppModal("Thành công", "Nâng cấp kỹ năng thành công!");
+
+    }
+
+    function startBossFight() {
+
+      if (bossGameActive) return;
+
+      if (!currentUser) return;
+
+      var userKey = currentUser.username.toLowerCase();
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'users/' + userKey + '/faction')).then(function(fSnap) {
+
+        if (!fSnap.exists() || !fSnap.val()) {
+
+          var chosenFaction = prompt("Chọn Phe Gia Nhập: Nhập 'red' cho Phe Đỏ (Admin Mờ Tê) hoặc 'blue' cho Phe Xanh (Admin TNA):", "red");
+
+          if (chosenFaction !== 'red' && chosenFaction !== 'blue') chosenFaction = 'red';
+
+          window.dbRefs.update(window.dbRefs.ref(window.db, 'users/' + userKey), { faction: chosenFaction });
+
+          currentUser.faction = chosenFaction;
+
+        } else {
+
+          currentUser.faction = fSnap.val();
+
+        }
+
+        bossGameActive = true;
+
+        roundClickCount = 0;
+
+        document.getElementById('round-clicks').innerText = "0";
+
+        document.getElementById('start-game-btn').disabled = true;
+
+        var fightTime = 40 + Math.floor((userUpgrades.timeLevel - 1) * 0.8);
+
+        document.getElementById('game-timer').innerText = fightTime + 's';
+
+        bossTimerInterval = setInterval(function() {
+
+          fightTime--;
+
+          document.getElementById('game-timer').innerText = fightTime + 's';
+
+          if (fightTime <= 0) {
+
+            clearInterval(bossTimerInterval);
+
+            finishBossFight();
+
+          }
+
+        }, 1000);
+
+      });
+
+    }
+
+    function registerBossClick() {
+
+      playBossHitSound();
+
+      if (!bossGameActive) return;
+
+      roundClickCount++;
+
+      document.getElementById('round-clicks').innerText = roundClickCount;
+
+      var multi = parseFloat((1.0 + (userUpgrades.multiLevel - 1) * 0.102).toFixed(1));
+
+      userUpgrades.coins += Math.round(1 * multi);
+
+      updateShopUI();
+
+    }
+
+    function finishBossFight() {
+
+      bossGameActive = false;
+
+      document.getElementById('start-game-btn').disabled = false;
+
+      if (roundClickCount > 0 && currentBossData) {
+
+        var atkDmgPerClick = 1 + Math.floor((userUpgrades.atkLevel - 1) * 9.99);
+
+        var totalDmg = roundClickCount * atkDmgPerClick;
+
+        var newHp = Math.max(0, (currentBossData.currentHp || 1000000) - totalDmg);
+
+        var isRed = currentUser.faction === 'red';
+
+        var updateObj = { currentHp: newHp };
+
+        if (isRed) updateObj.scoreRed = (currentBossData.scoreRed || 0) + totalDmg;
+
+        else updateObj.scoreBlue = (currentBossData.scoreBlue || 0) + totalDmg;
+
+        window.dbRefs.update(window.dbRefs.ref(window.db, 'boss_game'), updateObj);
+
+        var myKey = currentUser.username.toLowerCase();
+
+        window.dbRefs.get(window.dbRefs.ref(window.db, 'boss_scores/' + myKey)).then(function(scoreSnap) {
+
+          var curTotal = 0, curMax = 0;
+
+          if (scoreSnap.exists()) {
+
+            curTotal = scoreSnap.val().totalDamage || 0;
+
+            curMax = scoreSnap.val().maxRoundDamage || 0;
+
+          }
+
+          window.dbRefs.update(window.dbRefs.ref(window.db, 'boss_scores/' + myKey), {
+
+            username: currentUser.username,
+
+            nickname: currentUser.nickname || currentUser.username,
+
+            faction: currentUser.faction,
+
+            totalDamage: curTotal + totalDmg,
+
+            maxRoundDamage: Math.max(curMax, totalDmg)
+
+          });
+
+        });
+
+        saveUserBossUpgrades();
+
+        showAppModal("HẾT GIỜ!", "Bạn đã thực hiện " + roundClickCount + " cú click và gây ra " + totalDmg.toLocaleString() + " HP Sát thương cho Boss!");
+
+      }
+
+    }
+
+    function switchLeaderboardTab(faction) {
+
+      activeLeaderboardTab = faction;
+
+      document.getElementById('lb-tab-red').className = faction === 'red' ? "px-2 py-0.5 text-[9px] font-bold rounded bg-rose-600 text-white" : "px-2 py-0.5 text-[9px] font-bold rounded bg-gray-800 text-gray-400";
+
+      document.getElementById('lb-tab-blue').className = faction === 'blue' ? "px-2 py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white" : "px-2 py-0.5 text-[9px] font-bold rounded bg-gray-800 text-gray-400";
+
+      loadFactionLeaderboard();
+
+    }
+
+    function loadFactionLeaderboard() {
+
+      window.dbRefs.get(window.dbRefs.ref(window.db, 'boss_scores')).then(function(snap) {
+
+        var tbody = document.getElementById('faction-members-leaderboard');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (snap.exists()) {
+
+          var data = snap.val();
+
+          var list = [];
+
+          Object.keys(data).forEach(function(k) {
+
+            if (data[k].faction === activeLeaderboardTab) {
+
+              list.push(data[k]);
+
+            }
+
+          });
+
+          list.sort(function(a, b) { return (b.totalDamage || 0) - (a.totalDamage || 0); });
+
+          if (list.length === 0) {
+
+            tbody.innerHTML = '<tr><td colspan="3" class="px-2 py-2 text-center text-gray-500 italic">Chưa có thành viên nào thi đấu.</td></tr>';
+
+            return;
+
+          }
+
+          list.forEach(function(item) {
+
+            tbody.innerHTML += '<tr class="hover:bg-gray-800/40 border-b border-gray-800/50">' +
+
+              '<td class="px-2 py-1 font-bold text-amber-400">' + escapeHTML(item.nickname || item.username) + ' (@' + escapeHTML(item.username) + ')</td>' +
+
+              '<td class="px-2 py-1 font-mono text-rose-400 font-bold">' + (item.totalDamage || 0).toLocaleString() + ' HP</td>' +
+
+              '<td class="px-2 py-1 font-mono text-emerald-400 text-right">' + (item.maxRoundDamage || 0).toLocaleString() + ' HP</td>' +
+
+              '</tr>';
+
+          });
+
+        } else {
+
+          tbody.innerHTML = '<tr><td colspan="3" class="px-2 py-2 text-center text-gray-500 italic">Chưa có thành viên nào thi đấu.</td></tr>';
+
+        }
+
+      });
+
+    }
+
+    window.addEventListener('load', function() {
+
+      ensureAdminExists().then(function() {
+
+        checkActiveSession();
+
+        initDraggableMusicBall();
+
+        listenApprovedPlaylist();
+
+        listenGlobalAudioEnded();
+
+        setupAudioProgressTracker();
+
+      }).catch(function(err) {
+
+        console.warn("Lỗi kiểm tra admin ban đầu:", err);
+
+        checkActiveSession();
+
+        initDraggableMusicBall();
+
+        listenApprovedPlaylist();
+
+        listenGlobalAudioEnded();
+
+        setupAudioProgressTracker();
+
+      });
+
+    });
+
+  </script>
+
 </body>
+
 </html>
+
+…
